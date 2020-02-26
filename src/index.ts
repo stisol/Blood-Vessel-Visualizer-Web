@@ -58,26 +58,73 @@ function initShaderProgram(gl : WebGL2RenderingContext, vsSource:string, fsSourc
     return shader;
   }
 
-function parseData(data: string) {
-    var dataParser = new Parser()
-    .endianess("little")
-    .uint8("width")
-    .uint8("depth")
-    .uint8("height")
-    .array("src", {
-        type: "uint8",
-        readUntil: "eof"
+  function makeRequest(method:string, url:string, responseType: XMLHttpRequestResponseType) {
+    return new Promise(function (resolve, reject) {
+        let xhr = new XMLHttpRequest();
+        xhr.open(method, url);
+        xhr.responseType = responseType;
+        xhr.onload = function () {
+            if (this.status >= 200 && this.status < 300) {
+                resolve(xhr.response);
+            } else {
+                reject({
+                    status: this.status,
+                    statusText: xhr.statusText
+                });
+            }
+        };
+        xhr.onerror = function () {
+            reject({
+                status: this.status,
+                statusText: xhr.statusText
+            });
+        };
+        xhr.send();
     });
-
-    var buf = Buffer.from(data);
-
-    var parsedData = dataParser.parse(buf);
-    console.log(parsedData.width);
-    console.log(parsedData.height);
-    console.log(parsedData.depth);
 }
 
-function Init() {
+async function loadData(url: string, gl: WebGL2RenderingContext) {
+
+    let buffer = <ArrayBuffer>await makeRequest("GET", url, "arraybuffer");
+    
+    if(buffer) {
+        var byteArray = new Int16Array(buffer);
+        var floatArray = new Float32Array(byteArray);
+
+        var width = byteArray[0];
+        var height = byteArray[1];
+        var depth = byteArray[2];
+
+        console.log(width, height, depth);
+        //console.log(byteArray.slice(3).sort().reverse()[0]);
+
+        var texture = gl.createTexture();
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_3D, texture);
+    
+        gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_BASE_LEVEL, 0);
+        gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MAX_LEVEL, 0);
+        gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+        gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+        gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        let volumeData = floatArray.slice(3);
+        gl.texImage3D(gl.TEXTURE_3D,
+            0,
+            gl.R16F,
+            width,
+            height,
+            depth,
+            0,
+            gl.RED,
+            gl.FLOAT,
+            volumeData);
+    }
+
+}
+
+async function Init() {
 
     const canvas = <HTMLCanvasElement>document.querySelector("#theCanvas");
 
@@ -93,44 +140,76 @@ function Init() {
         uniformLocations: {
           projectionMatrix: gl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
           modelViewMatrix: gl.getUniformLocation(shaderProgram, 'uModelViewMatrix'),
+          depth: gl.getUniformLocation(shaderProgram, "uDepth")
         },
       };
     
-    gl.clearColor(0.0,0.0,0.0,1.0);
-    gl.clearDepth(1.0);  
-    gl.enable(gl.DEPTH_TEST);
-    gl.depthFunc(gl.LEQUAL);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
     const fieldOfView = 45 * Math.PI / 180;   // in radians
     const aspect = canvas.clientWidth / canvas.clientHeight;
+    console.log(canvas.width, canvas.height);
     const zNear = 0.1;
     const zFar = 100.0;
     const projectionMatrix = mat4.create();
-    mat4.perspective(projectionMatrix, fieldOfView, aspect, zNear, zFar);
 
+    mat4.perspective(projectionMatrix, fieldOfView, aspect, zNear, zFar);
+    //mat4.ortho(projectionMatrix, 0.0, 0.0, 1.0, 1.0, zNear, zFar);
+
+    await loadData("./data/hand.dat", gl);
     
     const modelViewMatrix = mat4.create();
-    mat4.translate(modelViewMatrix, modelViewMatrix, [0.0,0.0, -2.0]);
+    mat4.translate(modelViewMatrix, modelViewMatrix, [-.5,-0.5, -3.0]);
 
     let mesh = new Mesh();
-    mesh.set_positions([-1.0, 1.0, 1.0, 1.0, -1.0, -1.0, 1.0, -1.0]);
-    mesh.set_colors([1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0]);
-    mesh.bind_shader(gl, programInfo.program);
-  
-    gl.useProgram(programInfo.program);
-    
-    gl.uniformMatrix4fv(
-        programInfo.uniformLocations.projectionMatrix,
-        false,
-        projectionMatrix);
-    gl.uniformMatrix4fv(
-        programInfo.uniformLocations.modelViewMatrix,
-        false,
-        modelViewMatrix);
-    {
-        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-    }
+    mesh.set_positions([
+        0.0, 0.0, 0.0,
+        0.0, 0.0, 1.0,
+        0.0, 1.0, 0.0,
+        0.0, 1.0, 1.0,
+        1.0, 0.0, 0.0,
+        1.0, 0.0, 1.0,
+        1.0, 1.0, 0.0,
+        1.0, 1.0, 1.0        
+    ], [
+        0,1,3,  0,2,3, // negative x
+        4,5,7,  4,6,7, // positive x
+        0,1,5,  0,4,5, // negative y
+        2,3,7,  2,6,7, // positive y
+        0,2,6,  0,4,6, // negative z
+        1,3,7,  1,5,7, // positive z
+    ]);
+      
+    let renderLoop = () => {
+        gl.clearColor(0.0,0.0,0.0,1.0);
+        gl.clearDepth(1.0);  
+        gl.enable(gl.DEPTH_TEST);
+        gl.depthFunc(gl.LEQUAL);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+        // Setup required OpenGL state for drawing the back faces and
+        // composting with the background color
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+
+        gl.useProgram(programInfo.program);
+        
+        gl.uniformMatrix4fv(
+            programInfo.uniformLocations.projectionMatrix,
+            false,
+            projectionMatrix);
+        gl.uniformMatrix4fv(
+            programInfo.uniformLocations.modelViewMatrix,
+            false,
+            modelViewMatrix);
+        let depth = (<HTMLElement>document.getElementById("myRange")).value;
+        gl.uniform1f(programInfo.uniformLocations.depth,depth);
+        {
+            mesh.bind_shader(gl, programInfo.program);
+            gl.drawElements(gl.TRIANGLES, mesh.get_count(), gl.UNSIGNED_SHORT, 0);
+        }
+        requestAnimationFrame(renderLoop);
+    };
+    requestAnimationFrame(renderLoop);
 }
 
 
@@ -143,23 +222,3 @@ fetch("./data/hand.dat")
     
 }).then(parseData)
 .catch(console.error);*/
-
-var req = new XMLHttpRequest();
-req.open("GET", "./data/hand.dat", true);
-req.responseType = "arraybuffer";
-
-req.onload = function(event) {
-    var buffer = req.response;
-    if(buffer) {
-        var byteArray = new Uint8Array(buffer);
-
-        var width = byteArray[0] + byteArray[1] * 256;
-        var height = byteArray[2] + byteArray[3] * 256;
-        var depth = byteArray[4] + byteArray[5] * 256   ;
-
-        console.log(width, height, depth);
-
-
-    }
-}
-req.send(null);
