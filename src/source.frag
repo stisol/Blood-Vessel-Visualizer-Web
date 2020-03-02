@@ -49,7 +49,7 @@ void main() {
 
         // TODO: Change with transferfunction
         vec4 val_color = vec4(vec3(0.0,0.0,1.0), 0.0);
-        if(val > 0.5) {
+        if(val > 0.43) {
             val_color = vec4(vec3(1.0,0.0,0.0), val);
         } else if(val > 0.2){
             val_color = vec4(vec3(0.0,0.0,1.0), uDepth * val);
@@ -66,5 +66,5 @@ void main() {
 
         ray += ray_dir * dt;
     }
-
+    color += vec4(0.1, 0.1, 0.1, 0.1);
 }

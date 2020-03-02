@@ -4,7 +4,7 @@ import {Parser} from "binary-parser";
 
 import vert from './source.vert';
 import frag from './source.frag';
-import { mat4 } from "gl-matrix";
+import { mat4, vec3 } from "gl-matrix";
 
 import Mesh from './mesh';
 
@@ -96,7 +96,10 @@ async function loadData(url: string, gl: WebGL2RenderingContext) {
         var depth = byteArray[2];
 
         console.log(width, height, depth);
-        //console.log(byteArray.slice(3).sort().reverse()[0]);
+        // Normalize
+        let max = byteArray.slice(3).sort().reverse()[0];
+        byteArray.map(x=>x/max);
+        console.log(byteArray.slice(3).sort().reverse()[0]);
 
         var texture = gl.createTexture();
         gl.activeTexture(gl.TEXTURE0);
@@ -140,7 +143,8 @@ async function Init() {
         uniformLocations: {
           projectionMatrix: gl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
           modelViewMatrix: gl.getUniformLocation(shaderProgram, 'uModelViewMatrix'),
-          depth: gl.getUniformLocation(shaderProgram, "uDepth")
+          depth: gl.getUniformLocation(shaderProgram, "uDepth"),
+          eye_pos: gl.getUniformLocation(shaderProgram, "uEyePosition")
         },
       };
     
@@ -158,25 +162,52 @@ async function Init() {
     await loadData("./data/hand.dat", gl);
     
     const modelViewMatrix = mat4.create();
-    mat4.translate(modelViewMatrix, modelViewMatrix, [-.5,-0.5, -3.0]);
-
+    let eye : vec3 = [0.5, 0.5, 3.5];
+    mat4.lookAt(modelViewMatrix, eye, [0.5, 0.5, 0.5], [0.0, 1.0, 0.0]);
     let mesh = new Mesh();
     mesh.set_positions([
+        // Front face
+        0.0, 0.0,  1.0,
+        1.0, 0.0,  1.0,
+        1.0,  1.0,  1.0,
+        0.0,  1.0,  1.0,
+        
+        // Back face
         0.0, 0.0, 0.0,
-        0.0, 0.0, 1.0,
-        0.0, 1.0, 0.0,
-        0.0, 1.0, 1.0,
+        0.0,  1.0, 0.0,
+        1.0,  1.0, 0.0,
         1.0, 0.0, 0.0,
-        1.0, 0.0, 1.0,
-        1.0, 1.0, 0.0,
-        1.0, 1.0, 1.0        
+        
+        // Top face
+        0.0,  1.0, 0.0,
+        0.0,  1.0,  1.0,
+        1.0,  1.0,  1.0,
+        1.0,  1.0, 0.0,
+        
+        // Bottom face
+        0.0, 0.0, 0.0,
+        1.0, 0.0, 0.0,
+        1.0, 0.0,  1.0,
+        0.0, 0.0,  1.0,
+        
+        // Right face
+        1.0, 0.0, 0.0,
+        1.0,  1.0, 0.0,
+        1.0,  1.0,  1.0,
+        1.0, 0.0,  1.0,
+        
+        // Left face
+        0.0, 0.0, 0.0,
+        0.0, 0.0,  1.0,
+        0.0,  1.0,  1.0,
+        0.0,  1.0, 0.0,     
     ], [
-        0,1,3,  0,2,3, // negative x
-        4,5,7,  4,6,7, // positive x
-        0,1,5,  0,4,5, // negative y
-        2,3,7,  2,6,7, // positive y
-        0,2,6,  0,4,6, // negative z
-        1,3,7,  1,5,7, // positive z
+        0,  1,  2,      0,  2,  3,    // front
+        4,  5,  6,      4,  6,  7,    // back
+        8,  9,  10,     8,  10, 11,   // top
+        12, 13, 14,     12, 14, 15,   // bottom
+        16, 17, 18,     16, 18, 19,   // right
+        20, 21, 22,     20, 22, 23,   // left
     ]);
       
     let renderLoop = () => {
@@ -185,6 +216,7 @@ async function Init() {
         gl.enable(gl.DEPTH_TEST);
         gl.depthFunc(gl.LEQUAL);
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        
 
         // Setup required OpenGL state for drawing the back faces and
         // composting with the background color
@@ -192,6 +224,7 @@ async function Init() {
         gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
         gl.useProgram(programInfo.program);
+        gl.uniform3fv(programInfo.uniformLocations.eye_pos, eye);
         
         gl.uniformMatrix4fv(
             programInfo.uniformLocations.projectionMatrix,
