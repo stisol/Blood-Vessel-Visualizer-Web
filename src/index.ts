@@ -88,18 +88,21 @@ async function loadData(url: string, gl: WebGL2RenderingContext) {
     let buffer = <ArrayBuffer>await makeRequest("GET", url, "arraybuffer");
     
     if(buffer) {
-        var byteArray = new Int16Array(buffer);
-        var floatArray = new Float32Array(byteArray);
+        var floatArray = new Int16Array(buffer);
 
-        var width = byteArray[0];
-        var height = byteArray[1];
-        var depth = byteArray[2];
+        var width = floatArray[0];
+        var height = floatArray[1];
+        var depth = floatArray[2];
+        
 
         console.log(width, height, depth);
         // Normalize
-        let max = byteArray.slice(3).sort().reverse()[0];
-        byteArray.map(x=>x/max);
-        console.log(byteArray.slice(3).sort().reverse()[0]);
+        console.log("Calculating max");
+        let max = 0;
+        for(let i = 0; i < floatArray.length; ++i) {
+            max = Math.max(max, floatArray[i]);
+        }
+        console.log("Max is ", max);
 
         var texture = gl.createTexture();
         gl.activeTexture(gl.TEXTURE0);
@@ -112,7 +115,13 @@ async function loadData(url: string, gl: WebGL2RenderingContext) {
 
         gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
         gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        let volumeData = floatArray.slice(3);
+        console.log("Transforming to float");
+        var volumeData = new Float32Array(floatArray.slice(3));
+        console.log("Success");
+        for(let i = 0; i < volumeData.length; ++i) {
+            volumeData[i] /= max;
+        }
+        //volumeData = volumeData.map(x=>x/max);
         gl.texImage3D(gl.TEXTURE_3D,
             0,
             gl.R16F,
@@ -157,13 +166,12 @@ async function Init() {
     const projectionMatrix = mat4.create();
 
     mat4.perspective(projectionMatrix, fieldOfView, aspect, zNear, zFar);
+    //mat4.ortho(projectionMatrix, -1.0, 1.0, 1.0, -1.0, zNear, zFar);
     //mat4.ortho(projectionMatrix, 0.0, 0.0, 1.0, 1.0, zNear, zFar);
 
     await loadData("./data/hand.dat", gl);
     
     const modelViewMatrix = mat4.create();
-    let eye : vec3 = [0.5, 0.5, 3.5];
-    mat4.lookAt(modelViewMatrix, eye, [0.5, 0.5, 0.5], [0.0, 1.0, 0.0]);
     let mesh = new Mesh();
     mesh.set_positions([
         // Front face
@@ -210,7 +218,12 @@ async function Init() {
         20, 21, 22,     20, 22, 23,   // left
     ]);
       
+    let degree = 0.0;
     let renderLoop = () => {
+        degree += 0.01;
+        let eye : vec3 = [3.5 * Math.cos(degree),  3.5 * Math.sin(degree/4.0), 3.5 * Math.sin(degree)];
+        mat4.lookAt(modelViewMatrix, eye, [0.5, 0.5, 0.5], [0.0, 1.0, 0.0]);
+
         gl.clearColor(0.0,0.0,0.0,1.0);
         gl.clearDepth(1.0);  
         gl.enable(gl.DEPTH_TEST);

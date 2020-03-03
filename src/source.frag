@@ -45,7 +45,7 @@ void main() {
     vec3 ray = transformed_eye + ray_dir * hit.x;
     for(float t = hit.x; t < hit.y; t += dt) {
         // TODO: Make the data uniform and not dependent on max-size
-        float val = texture(textureData, ray.xzy).r / 2884.0;
+        float val = texture(textureData, ray.xzy).r;
 
         // TODO: Change with transferfunction
         vec4 val_color = vec4(vec3(0.0,0.0,1.0), 0.0);
