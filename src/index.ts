@@ -136,9 +136,22 @@ async function loadData(url: string, gl: WebGL2RenderingContext) {
 
 }
 
+async function resize(canvas: HTMLCanvasElement) {
+    let cWidth = canvas.clientWidth;
+    let cHeight = canvas.clientHeight;
+    if(cWidth != canvas.width || cHeight != canvas.height) {
+        console.log("reized", cWidth, cHeight);
+        canvas.width = cWidth;
+        canvas.height = cHeight;
+    }
+}
+
 async function Init() {
 
     const canvas = <HTMLCanvasElement>document.querySelector("#theCanvas");
+    
+    canvas.width = canvas.clientWidth;
+    canvas.height = canvas.clientHeight;
 
     const gl = canvas.getContext("webgl2");
     if (gl === null) {
@@ -220,6 +233,9 @@ async function Init() {
       
     let degree = 0.0;
     let renderLoop = () => {
+        resize(canvas);
+        gl.viewport(0,0,canvas.width,canvas.height);
+
         degree += 0.01;
         let eye : vec3 = [3.5 * Math.cos(degree),  3.5 * Math.sin(degree/4.0), 3.5 * Math.sin(degree)];
         mat4.lookAt(modelViewMatrix, eye, [0.5, 0.5, 0.5], [0.0, 1.0, 0.0]);
