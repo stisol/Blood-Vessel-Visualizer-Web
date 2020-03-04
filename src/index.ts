@@ -35,7 +35,9 @@ async function Init(): Promise<void> {
             projectionMatrix: gl.getUniformLocation(shaderProgram, "uProjectionMatrix"),
             modelViewMatrix: gl.getUniformLocation(shaderProgram, "uModelViewMatrix"),
             depth: gl.getUniformLocation(shaderProgram, "uDepth"),
-            eyePos: gl.getUniformLocation(shaderProgram, "uEyePosition")
+            eyePos: gl.getUniformLocation(shaderProgram, "uEyePosition"),
+            lowValColor: gl.getUniformLocation(shaderProgram, "lowValColor"),
+            highValColor: gl.getUniformLocation(shaderProgram, "highValColor")
         },
     };
 
@@ -79,6 +81,11 @@ async function Init(): Promise<void> {
 
         gl.useProgram(programInfo.program);
         gl.uniform3fv(programInfo.uniformLocations.eyePos, eye);
+
+        const c1 = settings.colorSkin();
+        gl.uniform3f(programInfo.uniformLocations.lowValColor, c1[0], c1[1], c1[2]);
+        const c2 = settings.colorBone();
+        gl.uniform3f(programInfo.uniformLocations.highValColor, c2[0], c2[1], c2[2]);
 
         gl.uniformMatrix4fv(
             programInfo.uniformLocations.projectionMatrix,

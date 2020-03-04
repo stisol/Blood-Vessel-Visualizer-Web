@@ -10,6 +10,8 @@ flat in vec3 transformed_eye;
 out lowp vec4 color;
 
 uniform sampler3D textureData;
+uniform vec3 lowValColor;
+uniform vec3 highValColor;
 
 uniform float uDepth;
 
@@ -48,11 +50,11 @@ void main() {
         float val = texture(textureData, ray.xzy).r;
 
         // TODO: Change with transferfunction
-        vec4 val_color = vec4(vec3(0.0,0.0,1.0), 0.0);
+        vec4 val_color = vec4(lowValColor, 0.0);
         if(val > 0.43) {
-            val_color = vec4(vec3(1.0,0.0,0.0), val);
+            val_color = vec4(highValColor, val);
         } else if(val > 0.2){
-            val_color = vec4(vec3(0.0,0.0,1.0), uDepth * val);
+            val_color = vec4(lowValColor, uDepth * val);
         }
         
         // Color compositing. Multiplicative
