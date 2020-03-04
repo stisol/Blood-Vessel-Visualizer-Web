@@ -1,104 +1,96 @@
-
-
-class Mesh {
-    private position_buffer: WebGLBuffer | null;
-    private color_buffer: WebGLBuffer | null;
-    private indices_buffer: WebGLBuffer | null;
+export class Mesh {
+    private positionBuffer: WebGLBuffer | null = null;
+    private colorBuffer: WebGLBuffer | null = null;
+    private indiceBuffer: WebGLBuffer | null = null;
     private dirty: boolean;
 
-    public position_data : number[] | null;
-    private indices_data: number[] | null;
-    private color_data : number[] | null;
-    
+    public positionData: number[] = [];
+    private indiceData: number[] = [];
+    private colorData: number[] = [];
+
     constructor() {
-        this.position_buffer = null;
-        this.color_buffer = null;
         this.dirty = true;
-        this.position_data = null;
-        this.color_data = null;
-        this.indices_data = null;
-        this.indices_buffer = null;
     }
 
-    set_positions(positions: number[], indices: number[]) {
+    public setPositions(positions: number[], indices: number[]): void {
         this.dirty = true;
-        this.position_data = positions;
-        this.indices_data = indices;
-    }
-    
-    set_colors(colors: number[]) {
-        this.dirty = true;
-        this.color_data = colors;
+        this.positionData = positions;
+        this.indiceData = indices;
     }
 
-    private rebuild_buffers(gl: WebGL2RenderingContext) {
-        if(!this.dirty) return true;
+    public setColors(colors: number[]): void {
+        this.dirty = true;
+        this.colorData = colors;
+    }
 
-        if(this.position_data == null) {
+    private rebuildBuffers(gl: WebGL2RenderingContext): void {
+        if (!this.dirty) return;
+
+        if (this.positionData == null) {
             console.error("Position data must be set in mesh!");
-            return false;
+            return;
         }
 
-        if(this.position_data != null) {
-            if(this.position_buffer == null) {
-                this.position_buffer = gl.createBuffer();
+        if (this.positionData != null) {
+            if (this.positionBuffer == null) {
+                this.positionBuffer = gl.createBuffer();
             }
-            gl.bindBuffer(gl.ARRAY_BUFFER, this.position_buffer);
-            
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
+
             gl.bufferData(gl.ARRAY_BUFFER,
-                new Float32Array(this.position_data),
+                new Float32Array(this.positionData),
                 gl.STATIC_DRAW);
         }
 
-        if(this.indices_data != null) {
-            if(this.indices_buffer == null) {
-                this.indices_buffer = gl.createBuffer();
+        if (this.indiceData != null) {
+            if (this.indiceBuffer == null) {
+                this.indiceBuffer = gl.createBuffer();
             }
 
-            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indices_buffer);
-            gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.indices_data), gl.STATIC_DRAW);
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indiceBuffer);
+            gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.indiceData), gl.STATIC_DRAW);
 
         }
 
-        if(this.color_data != null) {
-            if(this.color_buffer== null) {
-                this.color_buffer = gl.createBuffer();
+        if (this.colorData != null) {
+            if (this.colorBuffer == null) {
+                this.colorBuffer = gl.createBuffer();
             }
 
-            gl.bindBuffer(gl.ARRAY_BUFFER, this.color_buffer);
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.colorBuffer);
 
-            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.color_data), gl.STATIC_DRAW);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.colorData), gl.STATIC_DRAW);
         }
 
         this.dirty = false;
     }
 
-    public get_count() {
-        return <number>this.indices_data?.length;
+    public indiceCount(): number {
+        return this.indiceData?.length ?? 0;
     }
 
-    public bind_shader(gl: WebGL2RenderingContext, shader: WebGLProgram) {
-        this.rebuild_buffers(gl);
+    public bindShader(gl: WebGL2RenderingContext, shader: WebGLProgram): void {
+        this.rebuildBuffers(gl);
 
-        if(this.position_buffer) {
-            let vertexPosition = gl.getAttribLocation(shader, "aVertexPosition");
-            gl.bindBuffer(gl.ARRAY_BUFFER, this.position_buffer);
+        if (this.positionBuffer) {
+            const vertexPosition = gl.getAttribLocation(shader, "aVertexPosition");
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.positionBuffer);
             gl.vertexAttribPointer(vertexPosition, 3, gl.FLOAT, false, 0, 0);
             gl.enableVertexAttribArray(vertexPosition);
         }
 
-        
-        if(this.color_buffer) {
-            let colorPosition = gl.getAttribLocation(shader, "aColorPosition");
-            if(colorPosition != -1) {
-                gl.bindBuffer(gl.ARRAY_BUFFER, this.color_buffer);
+
+        if (this.colorBuffer) {
+            const colorPosition = gl.getAttribLocation(shader, "aColorPosition");
+            if (colorPosition != -1) {
+                gl.bindBuffer(gl.ARRAY_BUFFER, this.colorBuffer);
                 gl.vertexAttribPointer(colorPosition, 4, gl.FLOAT, false, 0, 0);
                 gl.enableVertexAttribArray(colorPosition);
             }
         }
 
-        if(this.indices_buffer) {
-            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indices_buffer);
+        if (this.indiceBuffer) {
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indiceBuffer);
         }
     }
 }

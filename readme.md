@@ -7,7 +7,7 @@
 npm install
 
 # Running
-npx webpack
+npx webpack --watch
 ```
 
 ## Hosting with live reload for development purposes
@@ -17,6 +17,5 @@ npx webpack
 npm install -g browser-sync
 
 # Running
-cd dist
-browser-sync start -s -f . --no-notify --host 127.0.0.1 --port 8000
+browser-sync start -s dist -f dist --no-notify --host 127.0.0.1 --port 8000
 ```
