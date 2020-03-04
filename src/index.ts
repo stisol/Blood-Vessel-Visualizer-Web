@@ -3,6 +3,7 @@ import frag from "./source.frag";
 import { mat4, vec3 } from "gl-matrix";
 import createCubeMesh from "./cubeMesh";
 import { initShaderProgram, bindTexture } from "./shader";
+import Settings from "./settings";
 
 function resize(canvas: HTMLCanvasElement): void {
     const cWidth = canvas.clientWidth;
@@ -54,7 +55,7 @@ async function Init(): Promise<void> {
     const mesh = createCubeMesh();
 
     let degree = 0.0;
-    const rangeElement = document.getElementById("myRange") as HTMLInputElement;
+    let settings = new Settings();
     const renderLoop = (): void => {
         resize(canvas);
         gl.viewport(0, 0, canvas.width, canvas.height);
@@ -86,7 +87,7 @@ async function Init(): Promise<void> {
             programInfo.uniformLocations.modelViewMatrix,
             false,
             modelViewMatrix);
-        const depth = parseFloat(rangeElement.value);
+        const depth = settings.skinOpacity();
         gl.uniform1f(programInfo.uniformLocations.depth, depth);
         {
             mesh.bindShader(gl, programInfo.program);
