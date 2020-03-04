@@ -33,13 +33,13 @@ function createInput(
 
     const div = document.createElement("div");
     div.classList.add("settingsContainer");
-    
+
     const title = document.createElement("label");
     title.innerText = name;
     div.appendChild(title);
-    
+
     div.appendChild(document.createElement("br"));
-    
+
     const input = document.createElement("input");
     input.type = type;
     input.min = String(min);
@@ -49,7 +49,7 @@ function createInput(
     input.id = id;
     input.value = String(value);
     div.appendChild(input);
-    
+
     sidebar.appendChild(div);
 
     return input;

@@ -1,9 +1,10 @@
 import vert from "./source.vert";
 import frag from "./source.frag";
-import { mat4, vec3 } from "gl-matrix";
+import { mat4 } from "gl-matrix";
 import createCubeMesh from "./cubeMesh";
 import { initShaderProgram, bindTexture } from "./shader";
 import Settings from "./settings";
+import Camera from "./camera";
 
 function resize(canvas: HTMLCanvasElement): void {
     const cWidth = canvas.clientWidth;
@@ -54,15 +55,15 @@ async function Init(): Promise<void> {
     const modelViewMatrix = mat4.create();
     const mesh = createCubeMesh();
 
-    let degree = 0.0;
-    let settings = new Settings();
+    const modelCenter: [number, number, number] = [0.5, 0.5, 0.5];
+    const camera = new Camera(modelCenter);
+    const settings = new Settings();
     const renderLoop = (): void => {
         resize(canvas);
         gl.viewport(0, 0, canvas.width, canvas.height);
 
-        degree += 0.01;
-        const eye: vec3 = [3.5 * Math.cos(degree), 3.5 * Math.sin(degree / 4.0), 3.5 * Math.sin(degree)];
-        mat4.lookAt(modelViewMatrix, eye, [0.5, 0.5, 0.5], [0.0, 1.0, 0.0]);
+        const eye = camera.position();
+        mat4.lookAt(modelViewMatrix, eye, modelCenter, [0.0, 1.0, 0.0]);
 
         gl.clearColor(0.0, 0.0, 0.0, 1.0);
         gl.clearDepth(1.0);
