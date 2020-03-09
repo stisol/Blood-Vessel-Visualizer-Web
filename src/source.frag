@@ -46,8 +46,8 @@ void main() {
     hit.x = max(hit.x, 0.0);
 
 	// Compute optimal step size
-	vec3 dt_vec = 1.0 / (vec3(244.0,124.0,257.0) * abs(ray_dir));
-	float dt = min(dt_vec.x, min(dt_vec.y, dt_vec.z))/2.0;
+	vec3 dt_vec = vec3(0.0005);
+	float dt = min(dt_vec.x, min(dt_vec.y, dt_vec.z));
 
     vec3 ray = transformed_eye + ray_dir * hit.x;
     for(float t = hit.x; t < hit.y; t += dt) {
@@ -67,7 +67,7 @@ void main() {
         color.a += (1.0 - color.a) * val_color.a;
 
         // Abort when integrated opacity is close to opaque
-        if(color.a >= 0.95) {
+        if(color.a >= 0.99) {
             break;
         }
 
@@ -76,9 +76,8 @@ void main() {
     
     color.rgb *= color.a;
 
-    vec3 dir = normalize(transformed_eye - ray);
 
-    float diff = max(dot(normalize(normal(ray)), dir), 0.0);
+    float diff = max(dot(normalize(normal(ray)), ray_dir), 0.0);
     color.rgb = (0.5 + diff) * color.rgb;
     //color = vec4(abs(normal(ray - ray_dir*dt)), 1.0);
 }
