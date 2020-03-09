@@ -13,7 +13,7 @@ export default class Settings {
             "range",
             0.0,
             1.0,
-            0.05,
+            0.3,
             0.001,
             "slider",
             "skinOpacity"
@@ -35,18 +35,20 @@ export default class Settings {
         const pickerSkin = document.createElement("button");
         pickerSkin.innerText = "Tissue color";
         sidebar.appendChild(pickerSkin);
-        setupPicker(pickerSkin, "blue", this.setColorSkin.bind(this));
+        setupPicker(pickerSkin, "#FFE0BDFF", this.setColorSkin.bind(this));
 
         const pickerBone = document.createElement("button");
         pickerBone.innerText = "Bone color";
         sidebar.appendChild(pickerBone);
-        setupPicker(pickerBone, "#01000000", this.setColorBone.bind(this));
+        setupPicker(pickerBone, "#FFFFFFFF", this.setColorBone.bind(this));
 
-        
+
     }
 
     public skinOpacity(): number {
-        return parseFloat(this.skinOpacityElem.value);
+        const v = parseFloat(this.skinOpacityElem.value);
+        console.log(v);
+        return Math.pow(v, 4);
     }
 
     public isOrtographicCamera(): boolean {
