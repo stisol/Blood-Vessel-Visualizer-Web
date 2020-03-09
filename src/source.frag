@@ -10,6 +10,7 @@ flat in vec3 transformed_eye;
 out lowp vec4 color;
 
 uniform sampler3D textureData;
+uniform sampler3D normalData;
 
 uniform float uDepth;
 
@@ -26,6 +27,11 @@ vec2 intersect_box(vec3 orig, vec3 dir) {
 	return vec2(t0, t1);
 }
 
+vec3 normal(vec3 pos) {
+    vec3 norm = texture(normalData, pos).bgr;
+    return vec3(-norm.x, norm.y, norm.z);
+}
+
 void main() {
 
     vec3 ray_dir= normalize(vray_dir);
@@ -40,12 +46,12 @@ void main() {
 
 	// Compute optimal step size
 	vec3 dt_vec = 1.0 / (vec3(244.0,124.0,257.0) * abs(ray_dir));
-	float dt = min(dt_vec.x, min(dt_vec.y, dt_vec.z));
+	float dt = min(dt_vec.x, min(dt_vec.y, dt_vec.z))/2.0;
 
     vec3 ray = transformed_eye + ray_dir * hit.x;
     for(float t = hit.x; t < hit.y; t += dt) {
         // TODO: Make the data uniform and not dependent on max-size
-        float val = texture(textureData, ray.xzy).r;
+        float val = texture(textureData, ray).r;
 
         // TODO: Change with transferfunction
         vec4 val_color = vec4(vec3(0.0,0.0,1.0), 0.0);
@@ -60,11 +66,16 @@ void main() {
         color.a += (1.0 - color.a) * val_color.a;
 
         // Abort when integrated opacity is close to opaque
-        if(color.a >= 0.99) {
+        if(color.a >= 0.95) {
             break;
         }
 
         ray += ray_dir * dt;
     }
-    color += vec4(0.1, 0.1, 0.1, 0.1);
+    
+    vec3 dir = normalize(transformed_eye - ray);
+
+    float diff = max(dot(normal(ray), dir), 0.0);
+    color.rgb = (0.5 + diff) * color.rgb;
+    //color = vec4(normal(ray - ray_dir*dt).bgr, color.a);
 }

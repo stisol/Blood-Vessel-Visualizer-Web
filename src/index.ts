@@ -35,7 +35,9 @@ async function Init(): Promise<void> {
             projectionMatrix: gl.getUniformLocation(shaderProgram, "uProjectionMatrix"),
             modelViewMatrix: gl.getUniformLocation(shaderProgram, "uModelViewMatrix"),
             depth: gl.getUniformLocation(shaderProgram, "uDepth"),
-            eyePos: gl.getUniformLocation(shaderProgram, "uEyePosition")
+            eyePos: gl.getUniformLocation(shaderProgram, "uEyePosition"),
+            textureData: gl.getUniformLocation(shaderProgram, "textureData"),
+            normalData: gl.getUniformLocation(shaderProgram, "normalData")
         },
     };
 
@@ -50,7 +52,7 @@ async function Init(): Promise<void> {
     //mat4.ortho(projectionMatrix, -1.0, 1.0, 1.0, -1.0, zNear, zFar);
     //mat4.ortho(projectionMatrix, 0.0, 0.0, 1.0, 1.0, zNear, zFar);
 
-    await bindTexture("./data/hand.dat", gl);
+    let [volume, normals] = await bindTexture("./data/hand.dat", gl);
 
     const modelViewMatrix = mat4.create();
     const mesh = createCubeMesh();
@@ -88,6 +90,9 @@ async function Init(): Promise<void> {
             programInfo.uniformLocations.modelViewMatrix,
             false,
             modelViewMatrix);
+
+            gl.uniform1i(programInfo.uniformLocations.textureData, 0);
+            gl.uniform1i(programInfo.uniformLocations.normalData, 1);
         const depth = settings.skinOpacity();
         gl.uniform1f(programInfo.uniformLocations.depth, depth);
         {
