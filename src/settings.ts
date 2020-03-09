@@ -3,6 +3,7 @@ import { vec3 } from "gl-matrix";
 
 export default class Settings {
     private skinOpacityElem: HTMLInputElement;
+    private isOrthoElem: HTMLInputElement;
     private pickerSkin: vec3 = [0.0, 0.0, 1.0];
     private pickerBone: vec3 = [0.001, 0.0, 0.0];
 
@@ -11,11 +12,22 @@ export default class Settings {
             "Skin Opacity",
             "range",
             0.0,
-            0.1,
+            1.0,
             0.05,
             0.001,
             "slider",
             "skinOpacity"
+        );
+
+        this.isOrthoElem = createInput(
+            "Orthographic Camera",
+            "checkbox",
+            0.0,
+            1.0,
+            0.0,
+            1.0,
+            "checkbox",
+            "orthographic-camera"
         );
 
         const sidebar = document.getElementById("sidebar") as HTMLDivElement;
@@ -29,10 +41,16 @@ export default class Settings {
         pickerBone.innerText = "Bone color";
         sidebar.appendChild(pickerBone);
         setupPicker(pickerBone, "#01000000", this.setColorBone.bind(this));
+
+        
     }
 
     public skinOpacity(): number {
         return parseFloat(this.skinOpacityElem.value);
+    }
+
+    public isOrtographicCamera(): boolean {
+        return this.isOrthoElem.checked;
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

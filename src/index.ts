@@ -50,7 +50,6 @@ async function Init(): Promise<void> {
     const projectionMatrix = mat4.create();
     console.log(canvas.width, canvas.height);
 
-    mat4.perspective(projectionMatrix, fieldOfView, aspect, zNear, zFar);
     //mat4.ortho(projectionMatrix, -1.0, 1.0, 1.0, -1.0, zNear, zFar);
     //mat4.ortho(projectionMatrix, 0.0, 0.0, 1.0, 1.0, zNear, zFar);
 
@@ -63,6 +62,13 @@ async function Init(): Promise<void> {
     const camera = new Camera(modelCenter);
     const settings = new Settings();
     const renderLoop = (): void => {
+
+        if(settings.isOrtographicCamera()) {
+            mat4.ortho(projectionMatrix, -1.0, 1.0, -1.0, 1.0, zNear, zFar);
+        } else {
+            mat4.perspective(projectionMatrix, fieldOfView, aspect, zNear, zFar);
+        }
+
         resize(canvas);
         gl.viewport(0, 0, canvas.width, canvas.height);
 

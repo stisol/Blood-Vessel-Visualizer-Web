@@ -30,8 +30,7 @@ vec2 intersect_box(vec3 orig, vec3 dir) {
 }
 
 vec3 normal(vec3 pos) {
-    vec3 norm = texture(normalData, pos).bgr;
-    return vec3(-norm.x, norm.y, norm.z);
+    return texture(normalData, pos).rgb;
 }
 
 void main() {
@@ -56,15 +55,15 @@ void main() {
         float val = texture(textureData, ray).r;
 
         // TODO: Change with transferfunction
-        vec4 val_color = vec4(lowValColor, 0.0);
+        vec4 val_color = vec4(normalize(lowValColor), 0.0);
         if(val > 0.43) {
-            val_color = vec4(highValColor, val);
+            val_color = vec4(normalize(highValColor), val);
         } else if(val > 0.2){
-            val_color = vec4(lowValColor, uDepth * val);
+            val_color = vec4(normalize(lowValColor), uDepth * val);
         }
         
         // Color compositing. Multiplicative
-        color.rgb += (1.0 - color.a) * val_color.a * val_color.rgb;
+        color.rgb += (1.0 - color.a) * (val_color.a * val_color.rgb);
         color.a += (1.0 - color.a) * val_color.a;
 
         // Abort when integrated opacity is close to opaque
@@ -75,9 +74,11 @@ void main() {
         ray += ray_dir * dt;
     }
     
+    color.rgb *= color.a;
+
     vec3 dir = normalize(transformed_eye - ray);
 
-    float diff = max(dot(normal(ray), dir), 0.0);
+    float diff = max(dot(normalize(normal(ray)), dir), 0.0);
     color.rgb = (0.5 + diff) * color.rgb;
-    //color = vec4(normal(ray - ray_dir*dt).bgr, color.a);
+    //color = vec4(abs(normal(ray - ray_dir*dt)), 1.0);
 }
