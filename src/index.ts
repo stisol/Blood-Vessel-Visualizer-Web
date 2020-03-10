@@ -23,7 +23,7 @@ async function Init(): Promise<void> {
         return;
     }
 
-    const targetTextureWidth = 2048;
+    const targetTextureWidth = 1024;
     const targetTextureHeight = targetTextureWidth;
 
     let renderWidth = targetTextureWidth;
@@ -91,6 +91,7 @@ async function Init(): Promise<void> {
 
     let frame = 0;
     let factor = 1.0;
+    let finalFactor = 1.0;
     const frameLog: number[] = [];
     const updateFps = (): void => {
         frameLog.push(frame);
@@ -100,24 +101,26 @@ async function Init(): Promise<void> {
             settings.setFps(fps.toString());
             frameLog.shift();
             
-            if(fps < 30) {
+            if(fps < 20) {
                 factor -= 0.05;
-            } else if(fps >= 55) {
+            } else if(fps >= 35) {
                 factor += 0.05;
             }
             factor = Math.max(Math.min(factor, 1.0), 0.1);
-            //let finalFactor = Math.round(factor * 10) / 10;
-            let finalFactor = factor;
-            finalFactor = Math.max(Math.min(finalFactor, 1.0), 0.1);
+            let newFactor = Math.round(factor * 10) / 10;
+            newFactor = Math.max(Math.min(newFactor, 1.0), 0.1);
 
-            gl.bindTexture(gl.TEXTURE_2D, targetTexture);
+            if(newFactor != finalFactor) {
+                finalFactor = newFactor;
+                gl.bindTexture(gl.TEXTURE_2D, targetTexture);
 
-            renderWidth = Math.round(targetTextureWidth * finalFactor);
-            renderHeight = Math.round(targetTextureHeight * finalFactor);
-        
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA,
-                renderWidth, renderHeight, 0,
-                gl.RGBA, gl.UNSIGNED_BYTE, null);
+                renderWidth = Math.round(targetTextureWidth * finalFactor);
+                renderHeight = Math.round(targetTextureHeight * finalFactor);
+            
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA,
+                    renderWidth, renderHeight, 0,
+                    gl.RGBA, gl.UNSIGNED_BYTE, null);
+                }
         }
         frame = 0;
         setTimeout(updateFps, 100);
