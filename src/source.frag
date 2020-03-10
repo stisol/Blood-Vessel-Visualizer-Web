@@ -76,7 +76,9 @@ void main() {
     color.rgb *= color.a;
 
 
-    float diff = max(dot(normal(ray), ray_dir), 0.0);
-    color.rgb = (0.5 + diff) * color.rgb;
+    if(length(normal(ray)) > 0.001 && color.a >= 0.99) { 
+        float diff = max(dot(normal(ray), ray_dir), 0.0);
+        color.rgb = (0.5 + diff) * color.rgb;
+    }
     //color = vec4(abs(normal(ray - ray_dir*dt)), 1.0);
 }

@@ -23,7 +23,7 @@ async function Init(): Promise<void> {
         return;
     }
 
-    const targetTextureWidth = 1024;
+    const targetTextureWidth = 2048;
     const targetTextureHeight = targetTextureWidth;
 
     let renderWidth = targetTextureWidth;
@@ -100,13 +100,20 @@ async function Init(): Promise<void> {
             settings.setFps(fps.toString());
             frameLog.shift();
             
-            let factor = Math.pow(fps/60, 3.0);
+            if(fps < 30) {
+                factor -= 0.05;
+            } else if(fps >= 55) {
+                factor += 0.05;
+            }
             factor = Math.max(Math.min(factor, 1.0), 0.1);
+            //let finalFactor = Math.round(factor * 10) / 10;
+            let finalFactor = factor;
+            finalFactor = Math.max(Math.min(finalFactor, 1.0), 0.1);
 
             gl.bindTexture(gl.TEXTURE_2D, targetTexture);
 
-            renderWidth = Math.round(targetTextureWidth * factor);
-            renderHeight = Math.round(targetTextureHeight * factor);
+            renderWidth = Math.round(targetTextureWidth * finalFactor);
+            renderHeight = Math.round(targetTextureHeight * finalFactor);
         
             gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA,
                 renderWidth, renderHeight, 0,
@@ -126,7 +133,7 @@ async function Init(): Promise<void> {
         if(settings.isOrtographicCamera()) {
             mat4.ortho(projectionMatrix, -1.0, 1.0, -1.0, 1.0, zNear, zFar);
         } else {
-            mat4.perspective(projectionMatrix, fieldOfView, aspect, zNear, zFar);
+            mat4.perspective(projectionMatrix, fieldOfView, canvas.clientWidth / canvas.clientHeight, zNear, zFar);
         }
 
         
@@ -180,7 +187,7 @@ async function Init(): Promise<void> {
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, targetTexture);
             // Tell WebGL how to convert from clip space to pixels
-        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height );
         gl.clearColor(0,0,0, 1);   // clear to white
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
         
