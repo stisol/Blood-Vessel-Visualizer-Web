@@ -6,8 +6,15 @@ export default class Settings {
     private isOrthoElem: HTMLInputElement;
     private pickerSkin: vec3 = [0.0, 0.0, 1.0];
     private pickerBone: vec3 = [0.001, 0.0, 0.0];
+    private fpsText: HTMLSpanElement;
 
     public constructor() {
+        const sidebar = document.getElementById("sidebar") as HTMLDivElement;
+
+        this.fpsText = document.createElement("span");
+        this.fpsText.innerText = "FPS: N/A";
+        sidebar.appendChild(this.fpsText);
+
         this.skinOpacityElem = createInput(
             "Skin Opacity",
             "range",
@@ -29,8 +36,6 @@ export default class Settings {
             "checkbox",
             "orthographic-camera"
         );
-
-        const sidebar = document.getElementById("sidebar") as HTMLDivElement;
 
         const pickerSkin = document.createElement("button");
         pickerSkin.innerText = "Tissue color";
@@ -75,6 +80,10 @@ export default class Settings {
 
     public colorBone(): vec3 {
         return this.pickerBone;
+    }
+
+    public setFps(fps: string) {
+        this.fpsText.innerText = "FPS: " + fps;
     }
 }
 

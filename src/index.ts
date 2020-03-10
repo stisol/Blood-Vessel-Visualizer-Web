@@ -23,13 +23,17 @@ async function Init(): Promise<void> {
         return;
     }
 
-    const targetTextureWidth = 512;
+    const targetTextureWidth = 1024;
     const targetTextureHeight = targetTextureWidth;
+
+    let renderWidth = targetTextureWidth;
+    let renderHeight = targetTextureHeight;
+
     const targetTexture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, targetTexture);
 
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA,
-        targetTextureWidth, targetTextureHeight, 0,
+        renderWidth, renderHeight, 0,
         gl.RGBA, gl.UNSIGNED_BYTE, null);
 
     // set the filtering so we don't need mips
@@ -71,6 +75,7 @@ async function Init(): Promise<void> {
     const zFar = 100.0;
     const projectionMatrix = mat4.create();
 
+
     //mat4.ortho(projectionMatrix, -1.0, 1.0, 1.0, -1.0, zNear, zFar);
     //mat4.ortho(projectionMatrix, 0.0, 0.0, 1.0, 1.0, zNear, zFar);
 
@@ -82,10 +87,41 @@ async function Init(): Promise<void> {
     const modelCenter: [number, number, number] = [0.5, 0.5, 0.5];
     const camera = new Camera(modelCenter);
     const settings = new Settings();
+
+
+    let frame = 0;
+    let factor = 1.0;
+    const frameLog: number[] = [];
+    const updateFps = (): void => {
+        frameLog.push(frame);
+        if(frameLog.length >= 10) {
+            const fps = frameLog.reduce((a,b) => a+b, 0);
+            
+            settings.setFps(fps.toString());
+            frameLog.shift();
+            
+            let factor = Math.pow(fps/60, 3.0);
+            factor = Math.max(Math.min(factor, 1.0), 0.1);
+
+            gl.bindTexture(gl.TEXTURE_2D, targetTexture);
+
+            renderWidth = Math.round(targetTextureWidth * factor);
+            renderHeight = Math.round(targetTextureHeight * factor);
+        
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA,
+                renderWidth, renderHeight, 0,
+                gl.RGBA, gl.UNSIGNED_BYTE, null);
+        }
+        frame = 0;
+        setTimeout(updateFps, 100);
+    }
+    setTimeout(updateFps, 100);
+
+
     const renderLoop = (): void => {
             // render to the canvas
     gl.bindFramebuffer(gl.FRAMEBUFFER, fb);    // Tell WebGL how to convert from clip space to pixels
-    gl.viewport(0, 0, targetTextureWidth, targetTextureHeight);
+    gl.viewport(0, 0, renderWidth, renderHeight);
 
         if(settings.isOrtographicCamera()) {
             mat4.ortho(projectionMatrix, -1.0, 1.0, -1.0, 1.0, zNear, zFar);
@@ -151,6 +187,7 @@ async function Init(): Promise<void> {
         view.bindShader(gl, viewInfo.program);
         gl.drawElements(gl.TRIANGLES, view.indiceCount(), gl.UNSIGNED_SHORT, 0.0);
 
+        frame++;
         requestAnimationFrame(renderLoop);
     };
     requestAnimationFrame(renderLoop);
