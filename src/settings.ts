@@ -3,10 +3,13 @@ import { vec3 } from "gl-matrix";
 
 export default class Settings {
     private skinOpacityElem: HTMLInputElement;
+    private skinOpacityCache: number;
     private isOrthoElem: HTMLInputElement;
+    private isOrthoCache: boolean;
     private pickerSkin: vec3 = [0.0, 0.0, 1.0];
     private pickerBone: vec3 = [0.001, 0.0, 0.0];
     private fpsText: HTMLSpanElement;
+    private updated = true;
 
     public constructor() {
         const sidebar = document.getElementById("sidebar") as HTMLDivElement;
@@ -15,16 +18,18 @@ export default class Settings {
         this.fpsText.innerText = "FPS: N/A";
         sidebar.appendChild(this.fpsText);
 
+        const defaultSkinOpacity = 0.3;
         this.skinOpacityElem = createInput(
             "Skin Opacity",
             "range",
             0.0,
             1.0,
-            0.3,
+            defaultSkinOpacity,
             0.001,
             "slider",
             "skinOpacity"
         );
+        this.skinOpacityCache = defaultSkinOpacity;
 
         this.isOrthoElem = createInput(
             "Orthographic Camera",
@@ -36,6 +41,7 @@ export default class Settings {
             "checkbox",
             "orthographic-camera"
         );
+        this.isOrthoCache = false;
 
         const pickerSkin = document.createElement("button");
         pickerSkin.innerText = "Tissue color";
@@ -46,18 +52,30 @@ export default class Settings {
         pickerBone.innerText = "Bone color";
         sidebar.appendChild(pickerBone);
         setupPicker(pickerBone, "#FFFFFFFF", this.setColorBone.bind(this));
+    }
 
-
+    public isUpdated(): boolean {
+        const v = this.updated;
+        this.updated = false;
+        return v;
     }
 
     public skinOpacity(): number {
         const v = parseFloat(this.skinOpacityElem.value);
-        console.log(v);
+        if (v !== this.skinOpacityCache) {
+            this.skinOpacityCache = v;
+            this.updated = true;
+        }
         return Math.pow(v, 4);
     }
 
     public isOrtographicCamera(): boolean {
-        return this.isOrthoElem.checked;
+        const v = this.isOrthoElem.checked;
+        if (v !== this.isOrthoCache) {
+            this.isOrthoCache = v;
+            this.updated = true;
+        }
+        return v;
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -65,6 +83,7 @@ export default class Settings {
         this.pickerSkin[0] = color.rgba[0];
         this.pickerSkin[1] = color.rgba[1];
         this.pickerSkin[2] = color.rgba[2];
+        this.updated = true;
     }
 
     public colorSkin(): vec3 {
@@ -76,13 +95,14 @@ export default class Settings {
         this.pickerBone[0] = color.rgba[0];
         this.pickerBone[1] = color.rgba[1];
         this.pickerBone[2] = color.rgba[2];
+        this.updated = true;
     }
 
     public colorBone(): vec3 {
         return this.pickerBone;
     }
 
-    public setFps(fps: string) {
+    public setFps(fps: string): void {
         this.fpsText.innerText = "FPS: " + fps;
     }
 }

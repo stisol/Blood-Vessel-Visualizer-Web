@@ -43,7 +43,7 @@ async function Init(): Promise<void> {
 
     const fb = gl.createFramebuffer();
     gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
-    
+
     const attachmentPoint = gl.COLOR_ATTACHMENT0;
     gl.framebufferTexture2D(gl.FRAMEBUFFER, attachmentPoint, gl.TEXTURE_2D, targetTexture, 0);
 
@@ -61,7 +61,7 @@ async function Init(): Promise<void> {
             highValColor: gl.getUniformLocation(shaderProgram, "highValColor")
         },
     };
-    
+
     const viewProgram = initShaderProgram(gl, viewVert, viewFrag);
     const viewInfo = {
         program: viewProgram,
@@ -70,7 +70,6 @@ async function Init(): Promise<void> {
     };
 
     const fieldOfView = 45 * Math.PI / 180;   // in radians
-    const aspect = canvas.clientWidth / canvas.clientHeight;
     const zNear = 0.1;
     const zFar = 100.0;
     const projectionMatrix = mat4.create();
@@ -79,7 +78,7 @@ async function Init(): Promise<void> {
     //mat4.ortho(projectionMatrix, -1.0, 1.0, 1.0, -1.0, zNear, zFar);
     //mat4.ortho(projectionMatrix, 0.0, 0.0, 1.0, 1.0, zNear, zFar);
 
-    let [volume, normals] = await bindTexture("./data/hand.dat", gl);
+    await bindTexture("./data/hand.dat", gl);
 
     const modelViewMatrix = mat4.create();
     const mesh = createCubeMesh();
@@ -92,35 +91,55 @@ async function Init(): Promise<void> {
     let frame = 0;
     let factor = 1.0;
     let finalFactor = 1.0;
+    let paused = false;
+    let lastSettingsUpdate = Date.now();
     const frameLog: number[] = [];
     const updateFps = (): void => {
         frameLog.push(frame);
-        if(frameLog.length >= 10) {
-            const fps = frameLog.reduce((a,b) => a+b, 0);
-            
+        if (frameLog.length >= 10) {
+            const viewUpdated = settings.isUpdated() || camera.isUpdated();
+
+            if (paused && !viewUpdated) {
+                frameLog.shift();
+                setTimeout(updateFps, 250);
+                return;
+            }
+
+            if (viewUpdated) {
+                lastSettingsUpdate = Date.now();
+                paused = false;
+            } else if (lastSettingsUpdate + 1000 < Date.now()) {
+                paused = true;
+            }
+
+            let fps = 0;
+            if (!paused) {
+                fps = frameLog.reduce((a, b) => a + b, 0);
+            }
+
             settings.setFps(fps.toString());
             frameLog.shift();
-            
-            if(fps < 20) {
-                factor -= 0.05;
-            } else if(fps >= 35) {
-                factor += 0.05;
+
+            if (fps < 30) {
+                factor -= 0.02;
+            } else if (fps >= 40) {
+                factor += 0.02;
             }
             factor = Math.max(Math.min(factor, 1.0), 0.1);
             let newFactor = Math.round(factor * 10) / 10;
             newFactor = Math.max(Math.min(newFactor, 1.0), 0.1);
 
-            if(newFactor != finalFactor) {
+            if (newFactor != finalFactor) {
                 finalFactor = newFactor;
                 gl.bindTexture(gl.TEXTURE_2D, targetTexture);
 
                 renderWidth = Math.round(targetTextureWidth * finalFactor);
                 renderHeight = Math.round(targetTextureHeight * finalFactor);
-            
+
                 gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA,
                     renderWidth, renderHeight, 0,
                     gl.RGBA, gl.UNSIGNED_BYTE, null);
-                }
+            }
         }
         frame = 0;
         setTimeout(updateFps, 100);
@@ -129,17 +148,17 @@ async function Init(): Promise<void> {
 
 
     const renderLoop = (): void => {
-            // render to the canvas
-    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);    // Tell WebGL how to convert from clip space to pixels
-    gl.viewport(0, 0, renderWidth, renderHeight);
+        // render to the canvas
+        gl.bindFramebuffer(gl.FRAMEBUFFER, fb);    // Tell WebGL how to convert from clip space to pixels
+        gl.viewport(0, 0, renderWidth, renderHeight);
 
-        if(settings.isOrtographicCamera()) {
+        if (settings.isOrtographicCamera()) {
             mat4.ortho(projectionMatrix, -1.0, 1.0, -1.0, 1.0, zNear, zFar);
         } else {
             mat4.perspective(projectionMatrix, fieldOfView, canvas.clientWidth / canvas.clientHeight, zNear, zFar);
         }
 
-        
+
         const eye = camera.position();
         mat4.lookAt(modelViewMatrix, eye, modelCenter, [0.0, 1.0, 0.0]);
 
@@ -167,14 +186,14 @@ async function Init(): Promise<void> {
             programInfo.uniformLocations.projectionMatrix,
             false,
             projectionMatrix);
-            
+
         gl.uniformMatrix4fv(
             programInfo.uniformLocations.modelViewMatrix,
             false,
             modelViewMatrix);
 
-            gl.uniform1i(programInfo.uniformLocations.textureData, 0);
-            gl.uniform1i(programInfo.uniformLocations.normalData, 1);
+        gl.uniform1i(programInfo.uniformLocations.textureData, 0);
+        gl.uniform1i(programInfo.uniformLocations.normalData, 1);
         const depth = settings.skinOpacity();
         gl.uniform1f(programInfo.uniformLocations.depth, depth);
         {
@@ -182,18 +201,18 @@ async function Init(): Promise<void> {
             gl.drawElements(gl.TRIANGLES, mesh.indiceCount(), gl.UNSIGNED_SHORT, 0);
         }
 
-        
+
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-         
+
         gl.useProgram(viewInfo.program);
         // render the cube with the texture we just rendered to
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, targetTexture);
-            // Tell WebGL how to convert from clip space to pixels
-        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height );
-        gl.clearColor(0,0,0, 1);   // clear to white
+        // Tell WebGL how to convert from clip space to pixels
+        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+        gl.clearColor(0, 0, 0, 1);   // clear to white
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-        
+
         view.bindShader(gl, viewInfo.program);
         gl.drawElements(gl.TRIANGLES, view.indiceCount(), gl.UNSIGNED_SHORT, 0.0);
 

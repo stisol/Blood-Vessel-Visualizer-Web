@@ -9,6 +9,8 @@ export default class Camera {
     private mouseDown = false;
     private lastMousePos = [0.0, 0.0];
 
+    private updated = true;
+
     public constructor(target: vec3) {
         this.target = target;
 
@@ -18,6 +20,12 @@ export default class Camera {
         canvas.onmouseleave = this.setMouseDown.bind(this, false);
         canvas.onmousemove = this.onMouseMove.bind(this);
         canvas.onwheel = this.onMouseScroll.bind(this);
+    }
+
+    public isUpdated(): boolean {
+        const v = this.updated;
+        this.updated = false;
+        return v;
     }
 
     private setMouseDown(value: boolean): void {
@@ -46,10 +54,12 @@ export default class Camera {
     public rotate(dTheta: number, dPhi: number): void {
         this.theta = (this.theta + dTheta) % (Math.PI * 2);
         this.phi = Math.max(0, Math.min(Math.PI, this.phi + dPhi));
+        this.updated = true;
     }
 
     public zoom(distance: number): void {
         this.radius = Math.max(0, this.radius - distance);
+        this.updated = true;
     }
 
     public position(): vec3 {
