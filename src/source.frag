@@ -30,7 +30,7 @@ vec2 intersect_box(vec3 orig, vec3 dir) {
 }
 
 vec3 normal(vec3 pos) {
-    return texture(normalData, pos).rgb;
+    return normalize(texture(normalData, pos).rgb);
 }
 
 void main() {
@@ -46,7 +46,7 @@ void main() {
     hit.x = max(hit.x, 0.0);
 
 	// Compute optimal step size
-	vec3 dt_vec = vec3(0.0005);
+	vec3 dt_vec = vec3(0.001);
 	float dt = min(dt_vec.x, min(dt_vec.y, dt_vec.z));
 
     vec3 ray = transformed_eye + ray_dir * hit.x;
@@ -56,12 +56,11 @@ void main() {
 
         // TODO: Change with transferfunction
         vec4 val_color = vec4(normalize(lowValColor), 0.0);
-        if(val > 0.43) {
+        if(val > 0.45) {
             val_color = vec4(normalize(highValColor), val);
         } else if(val > 0.2){
             val_color = vec4(normalize(lowValColor), uDepth * val);
         }
-        
         // Color compositing. Multiplicative
         color.rgb += (1.0 - color.a) * (val_color.a * val_color.rgb);
         color.a += (1.0 - color.a) * val_color.a;
@@ -77,7 +76,7 @@ void main() {
     color.rgb *= color.a;
 
 
-    float diff = max(dot(normalize(normal(ray)), ray_dir), 0.0);
+    float diff = max(dot(normal(ray), ray_dir), 0.0);
     color.rgb = (0.5 + diff) * color.rgb;
     //color = vec4(abs(normal(ray - ray_dir*dt)), 1.0);
 }
