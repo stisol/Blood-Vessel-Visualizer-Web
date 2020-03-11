@@ -10,6 +10,7 @@ canvas {
     height: 100%;
 }
 
+label,
 h1,
 h2,
 h3,
@@ -70,11 +71,11 @@ button {
     background-color: #ff6666;
 }
 
-.label-name {
+label {
     background: #282828;
     color: #E7E7E7;
-    font-size: 15px;
     border: none;
+    margin: 10px 0;
 }
 
 @keyframes example {
@@ -87,4 +88,9 @@ button {
 .row-animate input {
     animation-name: example;
     animation-duration: 3s;
+}
+
+.transfer-function {
+    height: 200px;
+    margin: 10px 0;
 }

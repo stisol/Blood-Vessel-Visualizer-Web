@@ -10,6 +10,7 @@ import createSquareMesh from "./squareMesh";
 import { initShaderProgram, bindTexture } from "./shader";
 import Settings from "./settings";
 import Camera from "./camera";
+import TransferFunction from "./transferFunction";
 
 async function Init(): Promise<void> {
     const canvas = document.querySelector("#theCanvas") as HTMLCanvasElement;
@@ -78,7 +79,7 @@ async function Init(): Promise<void> {
     //mat4.ortho(projectionMatrix, -1.0, 1.0, 1.0, -1.0, zNear, zFar);
     //mat4.ortho(projectionMatrix, 0.0, 0.0, 1.0, 1.0, zNear, zFar);
 
-    await bindTexture("./data/hand.dat", gl);
+    const volumeData = await bindTexture("./data/hand.dat", gl);
 
     const modelViewMatrix = mat4.create();
     const mesh = createCubeMesh();
@@ -86,7 +87,8 @@ async function Init(): Promise<void> {
     const modelCenter: [number, number, number] = [0.5, 0.5, 0.5];
     const camera = new Camera(modelCenter);
     const settings = new Settings();
-
+    const sidebar = document.getElementById("sidebar") as HTMLDivElement
+    const transferFunction = new TransferFunction(volumeData, sidebar);
 
     let frame = 0;
     let factor = 1.0;
