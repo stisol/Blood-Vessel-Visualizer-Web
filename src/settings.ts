@@ -14,9 +14,13 @@ export default class Settings {
     public constructor() {
         const sidebar = document.getElementById("sidebar") as HTMLDivElement;
 
-        this.fpsText = document.createElement("span");
-        this.fpsText.innerText = "FPS: N/A";
-        sidebar.appendChild(this.fpsText);
+        {
+            const div = document.createElement("div");
+            this.fpsText = document.createElement("span");
+            this.fpsText.innerText = "FPS: N/A";
+            div.appendChild(this.fpsText);
+            sidebar.appendChild(div);
+        }
 
         const defaultSkinOpacity = 0.3;
         this.skinOpacityElem = createInput(
@@ -43,15 +47,22 @@ export default class Settings {
         );
         this.isOrthoCache = false;
 
-        const pickerSkin = document.createElement("button");
-        pickerSkin.innerText = "Tissue color";
-        sidebar.appendChild(pickerSkin);
-        setupPicker(pickerSkin, "#FFE0BDFF", this.setColorSkin.bind(this));
-
-        const pickerBone = document.createElement("button");
-        pickerBone.innerText = "Bone color";
-        sidebar.appendChild(pickerBone);
-        setupPicker(pickerBone, "#FFFFFFFF", this.setColorBone.bind(this));
+        {
+            const div = document.createElement("div");
+            const pickerSkin = document.createElement("button");
+            pickerSkin.innerText = "Tissue color";
+            div.appendChild(pickerSkin);
+            sidebar.appendChild(div);
+            setupPicker(pickerSkin, "#FFE0BDFF", this.setColorSkin.bind(this));
+        }
+        {
+            const div = document.createElement("div");
+            const pickerBone = document.createElement("button");
+            pickerBone.innerText = "Bone color";
+            div.appendChild(pickerBone);
+            sidebar.appendChild(div);
+            setupPicker(pickerBone, "#FFFFFFFF", this.setColorBone.bind(this));
+        }
     }
 
     public isUpdated(): boolean {

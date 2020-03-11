@@ -10,7 +10,7 @@ import createSquareMesh from "./squareMesh";
 import { initShaderProgram, bindTexture } from "./shader";
 import Settings from "./settings";
 import Camera from "./camera";
-import TransferFunction from "./transferFunction";
+import TransferFunctionController from "./transferFunction";
 
 async function Init(): Promise<void> {
     const canvas = document.querySelector("#theCanvas") as HTMLCanvasElement;
@@ -88,7 +88,10 @@ async function Init(): Promise<void> {
     const camera = new Camera(modelCenter);
     const settings = new Settings();
     const sidebar = document.getElementById("sidebar") as HTMLDivElement
-    const transferFunction = new TransferFunction(volumeData, sidebar);
+    
+    // TEMP
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const transferFunction = new TransferFunctionController(volumeData, sidebar);
 
     let frame = 0;
     let factor = 1.0;
