@@ -150,7 +150,7 @@ class MainView implements View {
         let  factor = fps / 30.0;
         factor = Math.max(Math.min(Math.sqrt(factor), 1.0), 0.1);
         let newFactor = Math.round(factor * 10) / 10;
-        newFactor = Math.max(Math.min(newFactor, 1.0), 0.1);
+        newFactor = Math.max(Math.min(newFactor, 1.0), 0.7);
         if(newFactor < 1.0) {
             const renderWidth = Math.round(this.renderTarget.getWidth() * newFactor);
             const renderHeight = Math.round(this.renderTarget.getHeight() * newFactor);
