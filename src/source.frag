@@ -81,4 +81,5 @@ void main() {
         color.rgb = (0.5 + diff) * color.rgb;
     }
     //color = vec4(abs(normal(ray - ray_dir*dt)), 1.0);
+    //color = vec4(abs(normal(ray_dir * hit.x)), 1.0);
 }
