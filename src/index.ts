@@ -24,7 +24,7 @@ async function Init(): Promise<void> {
         return;
     }
 
-    const targetTextureWidth = 1024;
+    const targetTextureWidth = 4096;
     const targetTextureHeight = targetTextureWidth;
 
     let renderWidth = targetTextureWidth;
@@ -228,3 +228,4 @@ async function Init(): Promise<void> {
 }
 
 Init();
+
