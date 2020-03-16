@@ -12,6 +12,8 @@ import Settings from "./settings";
 import Camera from "./camera";
 import TransferFunctionController from "./transferFunction";
 
+import RenderTarget from './renderTarget';
+
 async function Init(): Promise<void> {
     const canvas = document.querySelector("#theCanvas") as HTMLCanvasElement;
 
@@ -27,26 +29,7 @@ async function Init(): Promise<void> {
     const targetTextureWidth = 4096;
     const targetTextureHeight = targetTextureWidth;
 
-    let renderWidth = targetTextureWidth;
-    let renderHeight = targetTextureHeight;
-
-    const targetTexture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, targetTexture);
-
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA,
-        renderWidth, renderHeight, 0,
-        gl.RGBA, gl.UNSIGNED_BYTE, null);
-
-    // set the filtering so we don't need mips
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-
-    const fb = gl.createFramebuffer();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
-
-    const attachmentPoint = gl.COLOR_ATTACHMENT0;
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, attachmentPoint, gl.TEXTURE_2D, targetTexture, 0);
+    const renderTarget = new RenderTarget(gl, targetTextureWidth, targetTextureHeight);
 
     const shaderProgram = initShaderProgram(gl, vert, frag);
     const programInfo = {
@@ -136,14 +119,11 @@ async function Init(): Promise<void> {
 
             if (newFactor != finalFactor) {
                 finalFactor = newFactor;
-                gl.bindTexture(gl.TEXTURE_2D, targetTexture);
 
-                renderWidth = Math.round(targetTextureWidth * finalFactor);
-                renderHeight = Math.round(targetTextureHeight * finalFactor);
+                const renderWidth = Math.round(targetTextureWidth * finalFactor);
+                const renderHeight = Math.round(targetTextureHeight * finalFactor);
 
-                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA,
-                    renderWidth, renderHeight, 0,
-                    gl.RGBA, gl.UNSIGNED_BYTE, null);
+                renderTarget.resize(renderWidth, renderHeight);
             }
         }
         frame = 0;
@@ -154,8 +134,8 @@ async function Init(): Promise<void> {
 
     const renderLoop = (): void => {
         // render to the canvas
-        gl.bindFramebuffer(gl.FRAMEBUFFER, fb);    // Tell WebGL how to convert from clip space to pixels
-        gl.viewport(0, 0, renderWidth, renderHeight);
+        renderTarget.bindFramebuffer()
+        gl.viewport(0, 0, renderTarget.getWidth(), renderTarget.getHeight());
 
         if (settings.isOrtographicCamera()) {
             mat4.ortho(projectionMatrix, -1.0, 1.0, -1.0, 1.0, zNear, zFar);
@@ -212,7 +192,7 @@ async function Init(): Promise<void> {
         gl.useProgram(viewInfo.program);
         // render the cube with the texture we just rendered to
         gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, targetTexture);
+        gl.bindTexture(gl.TEXTURE_2D, renderTarget.getTexture());
         // Tell WebGL how to convert from clip space to pixels
         gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
         gl.clearColor(0, 0, 0, 1);   // clear to white
