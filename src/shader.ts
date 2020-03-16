@@ -1,6 +1,7 @@
 import makeRequest from "./util";
 import { isNullOrUndefined } from "util";
 
+
 /**
  * Initialize a shader program, so WebGL knows how to draw our data.
  */

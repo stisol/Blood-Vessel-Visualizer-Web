@@ -3,9 +3,7 @@ import { vec3 } from "gl-matrix";
 
 export default class Settings {
     private skinOpacityElem: HTMLInputElement;
-    private skinOpacityCache: number;
     private isOrthoElem: HTMLInputElement;
-    private isOrthoCache: boolean;
     private pickerSkin: vec3 = [0.0, 0.0, 1.0];
     private pickerBone: vec3 = [0.001, 0.0, 0.0];
     private fpsText: HTMLSpanElement;
@@ -33,7 +31,7 @@ export default class Settings {
             "slider",
             "skinOpacity"
         );
-        this.skinOpacityCache = defaultSkinOpacity;
+        this.skinOpacityElem.oninput = (): void => {this.updated = true;}
 
         this.isOrthoElem = createInput(
             "Orthographic Camera",
@@ -45,7 +43,7 @@ export default class Settings {
             "checkbox",
             "orthographic-camera"
         );
-        this.isOrthoCache = false;
+        this.isOrthoElem.oninput = (): void => {this.updated = true;}
 
         {
             const div = document.createElement("div");
@@ -73,19 +71,11 @@ export default class Settings {
 
     public skinOpacity(): number {
         const v = parseFloat(this.skinOpacityElem.value);
-        if (v !== this.skinOpacityCache) {
-            this.skinOpacityCache = v;
-            this.updated = true;
-        }
         return Math.pow(v, 4);
     }
 
     public isOrtographicCamera(): boolean {
         const v = this.isOrthoElem.checked;
-        if (v !== this.isOrthoCache) {
-            this.isOrthoCache = v;
-            this.updated = true;
-        }
         return v;
     }
 
