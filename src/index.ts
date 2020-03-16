@@ -58,6 +58,8 @@ async function Init(): Promise<void> {
 
         // Setup required OpenGL state for drawing the back faces and
         // composting with the background color
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
         renderView.render(canvas.clientWidth / canvas.clientHeight, camera, settings);
 
