@@ -15,9 +15,6 @@ class MainView implements View {
     private gl: WebGL2RenderingContext;
     private renderTarget: RenderTarget;
 
-    private settings: Settings;
-    private camera: Camera;
-
     private projectionMatrix: mat4 = mat4.create();
     private modelViewMatrix: mat4 = mat4.create();
 
@@ -43,8 +40,6 @@ class MainView implements View {
     
         this.renderTarget = new RenderTarget(gl, this.maxResolutionWidth, this.maxResolutionHeight);
 
-        this.settings = new Settings();
-        this.camera = new Camera(this.modelCenter);
 
         this.deltaTime = 0.0;
 
@@ -65,9 +60,9 @@ class MainView implements View {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-empty-function
-    render(aspect: number): void {
+    render(aspect: number, camera: Camera, settings: Settings): void {
         const gl = this.gl;
-        if(this.updateFps()) {
+        if(this.updateFps(camera, settings)) {
 
             gl.clearColor(0.0, 0.0, 0.0, 1.0);
             gl.clearDepth(1.0);
@@ -78,7 +73,7 @@ class MainView implements View {
 
             const zNear = 0.1;
             const zFar = 100.0;
-            if (this.settings.isOrtographicCamera()) {
+            if (settings.isOrtographicCamera()) {
                 mat4.ortho(this.projectionMatrix, -1.0, 1.0, -1.0, 1.0, zNear, zFar);
             } else {
                 const fieldOfView = 45 * Math.PI / 180;   // in radians
@@ -86,15 +81,15 @@ class MainView implements View {
                     aspect, zNear, zFar);
             }
 
-            const eye = this.camera.position();
+            const eye = camera.position();
             mat4.lookAt(this.modelViewMatrix, eye, this.modelCenter, [0.0, 1.0, 0.0]);
             
             gl.useProgram(this.programInfo.program);
             gl.uniform3fv(this.programInfo.uniformLocations.eyePos, eye);
 
-            const c1 = this.settings.colorSkin();
+            const c1 = settings.colorSkin();
             gl.uniform3f(this.programInfo.uniformLocations.lowValColor, c1[0], c1[1], c1[2]);
-            const c2 = this.settings.colorBone();
+            const c2 = settings.colorBone();
             gl.uniform3f(this.programInfo.uniformLocations.highValColor, c2[0], c2[1], c2[2]);
 
             gl.uniformMatrix4fv(
@@ -109,7 +104,7 @@ class MainView implements View {
 
             gl.uniform1i(this.programInfo.uniformLocations.textureData, 0);
             gl.uniform1i(this.programInfo.uniformLocations.normalData, 1);
-            const depth = this.settings.skinOpacity();
+            const depth = settings.skinOpacity();
             gl.uniform1f(this.programInfo.uniformLocations.depth, depth);
             {
                 this.mesh.bindShader(gl, this.programInfo.program);
@@ -123,7 +118,7 @@ class MainView implements View {
     }
 
 
-    private updateFps(): boolean {
+    private updateFps(camera: Camera, settings: Settings): boolean {
 
         const newTime = window.performance.now();
         const fps = 1/(newTime - this.deltaTime) * 1000;
@@ -137,9 +132,9 @@ class MainView implements View {
         if(this.fpsLog.length > 5) {
             this.fpsLog.shift();
         } 
-        this.settings.setFps(Math.round(fps).toString());
+        settings.setFps(Math.round(fps).toString());
         
-        const viewUpdated = this.settings.isUpdated() || this.camera.isUpdated();
+        const viewUpdated = settings.isUpdated() || camera.isUpdated();
         if (!viewUpdated && this.lastSettingsUpdate + 1000 < Date.now()) {
             const doUpdate = this.maxResolutionWidth != this.renderTarget.getWidth() ||
                 this.maxResolutionHeight != this.renderTarget.getHeight();

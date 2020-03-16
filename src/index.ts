@@ -9,6 +9,8 @@ import TransferFunctionController from "./transferFunction";
 
 import View from './view';
 import MainView from './Views/mainView';
+import Camera from "./camera";
+import Settings from "./settings";
 
 async function Init(): Promise<void> {
     const canvas = document.querySelector("#theCanvas") as HTMLCanvasElement;
@@ -34,6 +36,9 @@ async function Init(): Promise<void> {
     };
 
 
+    const settings = new Settings();
+    const camera = new Camera([0.5, 0.5, 0.5]);
+
     //mat4.ortho(projectionMatrix, -1.0, 1.0, 1.0, -1.0, zNear, zFar);
     //mat4.ortho(projectionMatrix, 0.0, 0.0, 1.0, 1.0, zNear, zFar);
 
@@ -56,7 +61,7 @@ async function Init(): Promise<void> {
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
-        renderView.render(canvas.clientWidth / canvas.clientHeight);
+        renderView.render(canvas.clientWidth / canvas.clientHeight, camera, settings);
 
         //test = false;
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
