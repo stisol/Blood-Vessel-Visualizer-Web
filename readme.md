@@ -1,21 +1,21 @@
 # INF251 Project
 
-## Compiling
+## Building
 
 ```sh
 # First setup
 npm install
 
 # Running
-npx webpack --watch
+npm run build
 ```
 
-## Hosting with live reload for development purposes
+## Running
 
 ```sh
 # First setup
-npm install -g browser-sync
+npm install
 
 # Running
-browser-sync start -s dist -f dist --no-notify --host 127.0.0.1 --port 8000
+npm run start:dev
 ```
