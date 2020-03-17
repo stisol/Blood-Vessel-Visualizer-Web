@@ -30,14 +30,18 @@ class MainView implements View {
     private maxResolutionWidth: number;
     private maxResolutionHeight: number;
 
+    private reducedResolutionWidth: number;
+    private reducedResolutionHeight: number;
+
     private lastSettingsUpdate = 0;
     
     public constructor(gl: WebGL2RenderingContext) {
         this.gl = gl;
 
-        this.maxResolutionWidth = 2048;
+        this.maxResolutionWidth = 2048*8.0;
         this.maxResolutionHeight = this.maxResolutionWidth;
-    
+        this.reducedResolutionWidth = this.maxResolutionWidth;
+        this.reducedResolutionHeight = this.maxResolutionHeight;
         this.renderTarget = new RenderTarget(gl, this.maxResolutionWidth, this.maxResolutionHeight);
 
 
@@ -147,16 +151,22 @@ class MainView implements View {
 
         if(viewUpdated) {
             this.lastSettingsUpdate = Date.now();
+            if(this.renderTarget.getWidth() == this.maxResolutionWidth && this.renderTarget.getHeight() == this.maxResolutionHeight) {
+                this.renderTarget.resize(this.reducedResolutionWidth, this.reducedResolutionHeight);
+                return true;
+            }
         }
         
+        const avgFps = this.fpsLog.reduce((a, b) => a+b, 0) / 10.0;
         let  factor = fps / 30.0;
         factor = Math.max(Math.min(Math.sqrt(factor), 1.0), 0.1);
         let newFactor = Math.round(factor * 10) / 10;
         newFactor = Math.max(Math.min(newFactor, 1.0), 0.7);
-        if(newFactor < 1.0) {
+        if(newFactor < 1.0 && avgFps < 30.0 && fps < 30.0) {
             const renderWidth = Math.round(this.renderTarget.getWidth() * newFactor);
             const renderHeight = Math.round(this.renderTarget.getHeight() * newFactor);
-
+            this.reducedResolutionWidth = renderWidth;
+            this.reducedResolutionHeight = renderHeight;
             this.renderTarget.resize(renderWidth, renderHeight);
         }
         return true;
