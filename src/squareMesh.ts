@@ -1,4 +1,4 @@
-import { Mesh } from "./mesh";
+import Mesh from "./mesh";
 
 export default function createSquareMesh(): Mesh {
     const mesh = new Mesh();

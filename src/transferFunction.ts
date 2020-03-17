@@ -271,7 +271,7 @@ export class TransferFunction {
             tex[i0 + 0] = this.lerp(xval, c1[0], c2[0], c1[2].r, c2[2].r);
             tex[i0 + 1] = this.lerp(xval, c1[0], c2[0], c1[2].g, c2[2].g);
             tex[i0 + 2] = this.lerp(xval, c1[0], c2[0], c1[2].b, c2[2].b);
-            tex[i0 + 3] = this.lerp(xval, c1[0], c2[0], c1[1], c2[1]);
+            tex[i0 + 3] = this.lerp(xval, c1[0], c2[0], c1[1]*255.0, c2[1]*255.0);
         }
 
         return tex;

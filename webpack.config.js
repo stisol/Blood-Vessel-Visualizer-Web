@@ -17,10 +17,19 @@ module.exports = {
                 use: 'raw-loader',
                 exclude: /node_modules/,
             },
+            {
+                test: /\.(png|jpe?g|gif)$/i,
+                use: [
+                  {
+                    loader: 'file-loader',
+                  },
+                ],
+                exclude: /node_modules/,
+            }
         ],
     },
     resolve: {
-        extensions: ['.ts', '.js', 'vert', 'frag'],
+        extensions: ['.ts', '.js', 'vert', 'frag', '.png'],
     },
     output: {
         filename: 'bundle.js',
@@ -33,9 +42,6 @@ module.exports = {
             template: './layout.html'
         })
     ],
-    watchOptions: {
-        ignored: /node_modules/
-    },
     devServer: {
         contentBase: path.join(__dirname, 'dist'),
         compress: true,

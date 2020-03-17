@@ -1,4 +1,4 @@
-export class Mesh {
+class Mesh {
     private positionBuffer: WebGLBuffer | null = null;
     private colorBuffer: WebGLBuffer | null = null;
     private indiceBuffer: WebGLBuffer | null = null;

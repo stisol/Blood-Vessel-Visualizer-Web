@@ -10,6 +10,7 @@ import vert from "../source.vert";
 import frag from "../source.frag";
 import { initShaderProgram } from '../shader';
 import TransferFunctionController from '../transferFunction';
+import Light from '../light';
 
 class MainView implements View {
 
@@ -38,6 +39,8 @@ class MainView implements View {
     private transferFunctionTexture: WebGLTexture;
 
     private lastSettingsUpdate = 0;
+
+    private lights: Light;
     
     public constructor(gl: WebGL2RenderingContext, transferFunction: TransferFunctionController) {
         this.gl = gl;
@@ -53,6 +56,8 @@ class MainView implements View {
         this.transferFunction = transferFunction;
         this.transferFunctionTexture = gl.createTexture() as WebGLTexture;
         
+        this.lights = new Light(gl);
+
         this.deltaTime = 0.0;
 
         const shaderProgram = initShaderProgram(gl, vert, frag);
@@ -86,7 +91,7 @@ class MainView implements View {
             gl.viewport(0, 0, this.renderTarget.getWidth(), this.renderTarget.getHeight());
 
             const zNear = 0.1;
-            const zFar = 100.0;
+            const zFar = 40.0;
             if (settings.isOrtographicCamera()) {
                 mat4.ortho(this.projectionMatrix, -1.0, 1.0, -1.0, 1.0, zNear, zFar);
             } else {
@@ -102,16 +107,13 @@ class MainView implements View {
             gl.uniform3fv(this.programInfo.uniformLocations.eyePos, eye);
 
             gl.uniform1i(this.programInfo.uniformLocations.colorAccumulationType, settings.accumulationMethod());
+            const matrix = mat4.create();
+            mat4.multiply(matrix, this.projectionMatrix, this.modelViewMatrix);
 
             gl.uniformMatrix4fv(
                 this.programInfo.uniformLocations.projectionMatrix,
                 false,
-                this.projectionMatrix);
-
-            gl.uniformMatrix4fv(
-                this.programInfo.uniformLocations.modelViewMatrix,
-                false,
-                this.modelViewMatrix);
+                matrix);
 
                 
             // Check for transfer function update
@@ -139,7 +141,8 @@ class MainView implements View {
                 this.mesh.bindShader(gl, this.programInfo.program);
                 gl.drawElements(gl.TRIANGLES, this.mesh.indiceCount(), gl.UNSIGNED_SHORT, 0);
             }
-            gl.disable(gl.CULL_FACE)
+            gl.disable(gl.CULL_FACE);
+            this.lights.draw(matrix);
         }
     }
 
