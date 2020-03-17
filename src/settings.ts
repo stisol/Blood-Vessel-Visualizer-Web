@@ -7,24 +7,31 @@ export default class Settings {
     private pickerSkin: vec3 = [0.0, 0.0, 1.0];
     private pickerBone: vec3 = [0.001, 0.0, 0.0];
     private fpsText: HTMLSpanElement;
+    private updated = true;
 
     public constructor() {
         const sidebar = document.getElementById("sidebar") as HTMLDivElement;
 
-        this.fpsText = document.createElement("span");
-        this.fpsText.innerText = "FPS: N/A";
-        sidebar.appendChild(this.fpsText);
+        {
+            const div = document.createElement("div");
+            this.fpsText = document.createElement("span");
+            this.fpsText.innerText = "FPS: N/A";
+            div.appendChild(this.fpsText);
+            sidebar.appendChild(div);
+        }
 
+        const defaultSkinOpacity = 0.3;
         this.skinOpacityElem = createInput(
             "Skin Opacity",
             "range",
             0.0,
             1.0,
-            0.3,
+            defaultSkinOpacity,
             0.001,
             "slider",
             "skinOpacity"
         );
+        this.skinOpacityElem.oninput = (): void => {this.updated = true;}
 
         this.isOrthoElem = createInput(
             "Orthographic Camera",
@@ -36,28 +43,40 @@ export default class Settings {
             "checkbox",
             "orthographic-camera"
         );
+        this.isOrthoElem.oninput = (): void => {this.updated = true;}
 
-        const pickerSkin = document.createElement("button");
-        pickerSkin.innerText = "Tissue color";
-        sidebar.appendChild(pickerSkin);
-        setupPicker(pickerSkin, "#FFE0BDFF", this.setColorSkin.bind(this));
+        {
+            const div = document.createElement("div");
+            const pickerSkin = document.createElement("button");
+            pickerSkin.innerText = "Tissue color";
+            div.appendChild(pickerSkin);
+            sidebar.appendChild(div);
+            setupPicker(pickerSkin, "#FFE0BDFF", this.setColorSkin.bind(this));
+        }
+        {
+            const div = document.createElement("div");
+            const pickerBone = document.createElement("button");
+            pickerBone.innerText = "Bone color";
+            div.appendChild(pickerBone);
+            sidebar.appendChild(div);
+            setupPicker(pickerBone, "#FFFFFFFF", this.setColorBone.bind(this));
+        }
+    }
 
-        const pickerBone = document.createElement("button");
-        pickerBone.innerText = "Bone color";
-        sidebar.appendChild(pickerBone);
-        setupPicker(pickerBone, "#FFFFFFFF", this.setColorBone.bind(this));
-
-
+    public isUpdated(): boolean {
+        const v = this.updated;
+        this.updated = false;
+        return v;
     }
 
     public skinOpacity(): number {
         const v = parseFloat(this.skinOpacityElem.value);
-        console.log(v);
         return Math.pow(v, 4);
     }
 
     public isOrtographicCamera(): boolean {
-        return this.isOrthoElem.checked;
+        const v = this.isOrthoElem.checked;
+        return v;
     }
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -65,6 +84,7 @@ export default class Settings {
         this.pickerSkin[0] = color.rgba[0];
         this.pickerSkin[1] = color.rgba[1];
         this.pickerSkin[2] = color.rgba[2];
+        this.updated = true;
     }
 
     public colorSkin(): vec3 {
@@ -76,13 +96,14 @@ export default class Settings {
         this.pickerBone[0] = color.rgba[0];
         this.pickerBone[1] = color.rgba[1];
         this.pickerBone[2] = color.rgba[2];
+        this.updated = true;
     }
 
     public colorBone(): vec3 {
         return this.pickerBone;
     }
 
-    public setFps(fps: string) {
+    public setFps(fps: string): void {
         this.fpsText.innerText = "FPS: " + fps;
     }
 }

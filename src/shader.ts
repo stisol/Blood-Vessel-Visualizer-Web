@@ -1,6 +1,7 @@
 import makeRequest from "./util";
 import { isNullOrUndefined } from "util";
 
+
 /**
  * Initialize a shader program, so WebGL knows how to draw our data.
  */
@@ -58,100 +59,97 @@ function loadShader(
     return shader;
 }
 
-export async function bindTexture(url: string, gl: WebGL2RenderingContext): Promise<[WebGLTexture | null, WebGLTexture | null]> {
+export async function bindTexture(url: string, gl: WebGL2RenderingContext): Promise<Float32Array> {
     const buffer = await makeRequest("GET", url, "arraybuffer") as ArrayBuffer;
 
-    if (buffer) {
-        const floatArray = new Int16Array(buffer);
+    if (!buffer) throw "Could not load the texture data.";
 
-        const width = floatArray[0];
-        const height = floatArray[1];
-        const depth = floatArray[2];
-        console.log(width, height, depth);
+    const floatArray = new Int16Array(buffer);
 
-        // Normalize
-        console.log("Calculating max");
-        let max = 0;
-        for (let i = 0; i < floatArray.length; ++i) {
-            max = Math.max(max, floatArray[i]);
-        }
-        console.log("Max is ", max);
+    const width = floatArray[0];
+    const height = floatArray[1];
+    const depth = floatArray[2];
+    console.log(width, height, depth);
 
-        const texture = gl.createTexture();
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_3D, texture);
-
-        gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_BASE_LEVEL, 0);
-        gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MAX_LEVEL, 0);
-        gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
-        gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-
-        gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-
-        console.log("Transforming to float");
-        const volumeData = new Float32Array(floatArray.slice(3));
-        const normalData = new Float32Array(volumeData.length * 3);
-        console.log("Success");
-
-        for (let i = 0; i < volumeData.length; ++i) {
-            volumeData[i] /= max;
-        }
-        //volumeData = volumeData.map(x=>x/max);
-        gl.texImage3D(gl.TEXTURE_3D,
-            0,
-            gl.R16F,
-            width,
-            height,
-            depth,
-            0,
-            gl.RED,
-            gl.FLOAT,
-            volumeData
-        );
-
-        
-        
-        let index = (x:number, y:number, z:number) => Math.max(Math.min(x + y * width + z*width*height, volumeData.length), 0);
-        
-        for (let i = 0; i < volumeData.length; ++i) {
-            let x = Math.round((i))%width;
-            let y = Math.round((i / width))%height;
-            let z = Math.round((i / width / height)) % depth;
-            normalData[i*3  ] =  (volumeData[index(x, y, z-1)] - volumeData[index(x, y, z+1)]) / 2.0;
-            normalData[i*3+1] = -(volumeData[index(x, y-1, z)] - volumeData[index(x, y+1, z)]) / 2.0;
-            normalData[i*3+2] =  (volumeData[index(x-1, y, z)] - volumeData[index(x+1, y, z)]) / 2.0;
-            
-            let factor = Math.max(Math.abs(normalData[i*3]), Math.max(Math.abs(normalData[i*3+1]), Math.abs(normalData[i*3+2])));
-            normalData[i*3  ] /= factor;
-            normalData[i*3+1] /= factor;
-            normalData[i*3+2] /= factor;
-        }
-        const texture2 = gl.createTexture();
-        gl.activeTexture(gl.TEXTURE1);
-        gl.bindTexture(gl.TEXTURE_3D, texture2);
-
-        gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_BASE_LEVEL, 0);
-        gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MAX_LEVEL, 0);
-        gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
-        gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-
-        gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        
-        gl.texImage3D(gl.TEXTURE_3D,
-            0,
-            gl.RGB16F,
-            width,
-            height,
-            depth,
-            0,
-            gl.RGB,
-            gl.FLOAT,
-            normalData
-        );
-        
-        return [texture, texture2];
+    // Normalize
+    console.log("Calculating max");
+    let max = 0;
+    for (let i = 0; i < floatArray.length; ++i) {
+        max = Math.max(max, floatArray[i]);
     }
-    return [null, null];
+    console.log("Max is ", max);
+
+    const texture = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_3D, texture);
+
+    gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_BASE_LEVEL, 0);
+    gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MAX_LEVEL, 0);
+    gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+    gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+    gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+    console.log("Transforming to float");
+    const volumeData = new Float32Array(floatArray.slice(3));
+    const normalData = new Float32Array(volumeData.length * 3);
+    console.log("Success");
+
+    for (let i = 0; i < volumeData.length; ++i) {
+        volumeData[i] /= max;
+    }
+    //volumeData = volumeData.map(x=>x/max);
+    gl.texImage3D(gl.TEXTURE_3D,
+        0,
+        gl.R16F,
+        width,
+        height,
+        depth,
+        0,
+        gl.RED,
+        gl.FLOAT,
+        volumeData
+    );
+
+    let index = (x: number, y: number, z: number) => Math.max(Math.min(x + y * width + z * width * height, volumeData.length), 0);
+
+    for (let i = 0; i < volumeData.length; ++i) {
+        let x = Math.round((i)) % width;
+        let y = Math.round((i / width)) % height;
+        let z = Math.round((i / width / height)) % depth;
+        normalData[i * 3] = (volumeData[index(x, y, z - 1)] - volumeData[index(x, y, z + 1)]) / 2.0;
+        normalData[i * 3 + 1] = -(volumeData[index(x, y - 1, z)] - volumeData[index(x, y + 1, z)]) / 2.0;
+        normalData[i * 3 + 2] = (volumeData[index(x - 1, y, z)] - volumeData[index(x + 1, y, z)]) / 2.0;
+
+        let factor = Math.max(Math.abs(normalData[i * 3]), Math.max(Math.abs(normalData[i * 3 + 1]), Math.abs(normalData[i * 3 + 2])));
+        normalData[i * 3] /= factor;
+        normalData[i * 3 + 1] /= factor;
+        normalData[i * 3 + 2] /= factor;
+    }
+    const texture2 = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_3D, texture2);
+
+    gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_BASE_LEVEL, 0);
+    gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MAX_LEVEL, 0);
+    gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+    gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+    gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+    gl.texImage3D(gl.TEXTURE_3D,
+        0,
+        gl.RGB16F,
+        width,
+        height,
+        depth,
+        0,
+        gl.RGB,
+        gl.FLOAT,
+        normalData
+    );
+
+    return volumeData;
 }

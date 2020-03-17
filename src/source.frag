@@ -73,12 +73,14 @@ void main() {
         ray += ray_dir * dt;
     }
     
-    color.rgb *= color.a;
 
 
     if(length(normal(ray)) > 0.001 && color.a >= 0.99) { 
         float diff = max(dot(normal(ray), ray_dir), 0.0);
         color.rgb = (0.5 + diff) * color.rgb;
     }
+
+    gl_FragDepth = 1.0-length(abs(ray) - vray_dir - transformed_eye);
     //color = vec4(abs(normal(ray - ray_dir*dt)), 1.0);
+    //color = vec4(abs(normal(ray_dir * hit.x)), 1.0);
 }
