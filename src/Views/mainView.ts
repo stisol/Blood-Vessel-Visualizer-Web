@@ -127,8 +127,10 @@ class MainView implements View {
 
     private updateFps(camera: Camera, settings: Settings): boolean {
 
+        const optimalFps = 30;
+
         const newTime = window.performance.now();
-        const fps = 1/(newTime - this.deltaTime) * 1000;
+        const fps = 1/Math.max(newTime - this.deltaTime, 1) * 1000;
         if(this.deltaTime == 0.0) {
             this.deltaTime = newTime;
             return true;
@@ -136,10 +138,11 @@ class MainView implements View {
         this.deltaTime = newTime;
 
         this.fpsLog.push(fps);
-        if(this.fpsLog.length > 5) {
+        if(this.fpsLog.length > 10) {
             this.fpsLog.shift();
         } 
-        settings.setFps(Math.round(fps).toString());
+        const avgFps = this.fpsLog.reduce((a, b) => a+b, 0) / 10.0;
+        settings.setFps(Math.round(avgFps).toString());
         
         const viewUpdated = settings.isUpdated() || camera.isUpdated();
         if (!viewUpdated && this.lastSettingsUpdate + 1000 < Date.now()) {
@@ -157,12 +160,11 @@ class MainView implements View {
             }
         }
         
-        const avgFps = this.fpsLog.reduce((a, b) => a+b, 0) / 10.0;
-        let  factor = fps / 30.0;
+        let  factor = fps / optimalFps;
         factor = Math.max(Math.min(Math.sqrt(factor), 1.0), 0.1);
         let newFactor = Math.round(factor * 10) / 10;
         newFactor = Math.max(Math.min(newFactor, 1.0), 0.7);
-        if(newFactor < 1.0 && avgFps < 30.0 && fps < 30.0) {
+        if(newFactor < 1.0 && avgFps < optimalFps && fps < optimalFps) {
             const renderWidth = Math.round(this.renderTarget.getWidth() * newFactor);
             const renderHeight = Math.round(this.renderTarget.getHeight() * newFactor);
             this.reducedResolutionWidth = renderWidth;
