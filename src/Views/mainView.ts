@@ -35,7 +35,7 @@ class MainView implements View {
     public constructor(gl: WebGL2RenderingContext) {
         this.gl = gl;
 
-        this.maxResolutionWidth = 1024;
+        this.maxResolutionWidth = 2048;
         this.maxResolutionHeight = this.maxResolutionWidth;
     
         this.renderTarget = new RenderTarget(gl, this.maxResolutionWidth, this.maxResolutionHeight);
@@ -69,6 +69,8 @@ class MainView implements View {
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
             gl.enable(gl.CULL_FACE);
             gl.cullFace(gl.FRONT);
+            gl.enable(gl.DEPTH_TEST);
+            gl.depthFunc(gl.LEQUAL);
             gl.viewport(0, 0, this.renderTarget.getWidth(), this.renderTarget.getHeight());
 
             const zNear = 0.1;
