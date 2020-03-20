@@ -14,6 +14,9 @@ uniform sampler3D normalData;
 uniform vec3 lowValColor;
 uniform vec3 highValColor;
 
+const vec3 clipPlanePos = vec3(0.5, 0.0, 0.0);
+const vec3 clipPlaneNormal = vec3(1.0, 0.0, 0.0);
+
 uniform float uDepth;
 
 vec2 intersect_box(vec3 orig, vec3 dir) {
@@ -51,26 +54,34 @@ void main() {
 
     vec3 ray = transformed_eye + ray_dir * hit.x;
     for(float t = hit.x; t < hit.y; t += dt) {
-        // TODO: Make the data uniform and not dependent on max-size
-        float val = texture(textureData, ray).r;
+        
+        float d = dot(ray - clipPlanePos, clipPlaneNormal);
+        if(d < 0.0) {
+            // TODO: Make the data uniform and not dependent on max-size
+            float val = texture(textureData, ray).r;
 
-        // TODO: Change with transferfunction
-        vec4 val_color = vec4(normalize(lowValColor), 0.0);
-        if(val > 0.45) {
-            val_color = vec4(normalize(highValColor), val);
-        } else if(val > 0.2){
-            val_color = vec4(normalize(lowValColor), uDepth * val);
-        }
-        // Color compositing. Multiplicative
-        color.rgb += (1.0 - color.a) * (val_color.a * val_color.rgb);
-        color.a += (1.0 - color.a) * val_color.a;
+            // TODO: Change with transferfunction
+            vec4 val_color = vec4(normalize(lowValColor), 0.0);
+            if(val > 0.45) {
+                val_color = vec4(normalize(highValColor), val);
+            } else if(val > 0.2){
+                val_color = vec4(normalize(lowValColor), uDepth * val);
+            }
 
-        // Abort when integrated opacity is close to opaque
-        if(color.a >= 0.99) {
-            break;
+            
+
+            // Color compositing. Multiplicative
+            color.rgb += (1.0 - color.a) * (val_color.a * val_color.rgb);
+            color.a += (1.0 - color.a) * val_color.a;
+
+            // Abort when integrated opacity is close to opaque
+            if(color.a >= 0.99) {
+                break;
+            }
         }
 
         ray += ray_dir * dt;
+
     }
     
 

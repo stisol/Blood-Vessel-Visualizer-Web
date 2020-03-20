@@ -38,7 +38,7 @@ class MainView implements View {
     public constructor(gl: WebGL2RenderingContext) {
         this.gl = gl;
 
-        this.maxResolutionWidth = 2048*8.0;
+        this.maxResolutionWidth = 2048;
         this.maxResolutionHeight = this.maxResolutionWidth;
         this.reducedResolutionWidth = this.maxResolutionWidth;
         this.reducedResolutionHeight = this.maxResolutionHeight;
