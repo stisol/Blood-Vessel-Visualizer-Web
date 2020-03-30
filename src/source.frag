@@ -14,6 +14,8 @@ uniform sampler3D normalData;
 uniform vec3 lowValColor;
 uniform vec3 highValColor;
 
+uniform int colorAccumulationType;
+
 const vec3 clipPlanePos = vec3(0.5, 0.0, 0.0);
 const vec3 clipPlaneNormal = vec3(1.0, 0.0, 0.0);
 
@@ -53,6 +55,7 @@ void main() {
 	float dt = min(dt_vec.x, min(dt_vec.y, dt_vec.z));
 
     vec3 ray = transformed_eye + ray_dir * hit.x;
+    vec3 color_hit = ray;
     for(float t = hit.x; t < hit.y; t += dt) {
         
         float d = dot(ray - clipPlanePos, clipPlaneNormal);
@@ -65,14 +68,22 @@ void main() {
             if(val > 0.45) {
                 val_color = vec4(normalize(highValColor), val);
             } else if(val > 0.2){
-                val_color = vec4(normalize(lowValColor), uDepth * val);
+                val_color = vec4(normalize(lowValColor), val * uDepth);
             }
 
             
-
-            // Color compositing. Multiplicative
-            color.rgb += (1.0 - color.a) * (val_color.a * val_color.rgb);
-            color.a += (1.0 - color.a) * val_color.a;
+            if(colorAccumulationType == 0) {
+                // Color compositing. Multiplicative
+                color.rgb += (1.0 - color.a) * (val_color.a * val_color.rgb);
+                color.a += (1.0 - color.a) * val_color.a;
+                color_hit = ray;
+            } else {
+                if(length(color.rgb) < length(val_color.rgb * val_color.a)) {
+                    color.rgba = val_color;
+                    color.rgb *= color.a;
+                    color_hit = ray;
+                }
+            }
 
             // Abort when integrated opacity is close to opaque
             if(color.a >= 0.99) {
@@ -83,15 +94,13 @@ void main() {
         ray += ray_dir * dt;
 
     }
-    
 
-
-    if(length(normal(ray)) > 0.001 && color.a >= 0.99) { 
-        float diff = max(dot(normal(ray), ray_dir), 0.0);
+    if(length(normal(color_hit)) > 0.001) { 
+        float diff = max(dot(normal(color_hit), ray_dir), 0.0);
         color.rgb = (0.5 + diff) * color.rgb;
     }
 
-    gl_FragDepth = 1.0-length(abs(ray) - vray_dir - transformed_eye);
+    gl_FragDepth = 1.0-length(abs(color_hit) - vray_dir - transformed_eye);
     //color = vec4(abs(normal(ray - ray_dir*dt)), 1.0);
     //color = vec4(abs(normal(ray_dir * hit.x)), 1.0);
 }

@@ -123,9 +123,15 @@ export async function bindTexture(url: string, gl: WebGL2RenderingContext): Prom
         normalData[i * 3 + 2] = (volumeData[index(x - 1, y, z)] - volumeData[index(x + 1, y, z)]) / 2.0;
 
         let factor = Math.max(Math.abs(normalData[i * 3]), Math.max(Math.abs(normalData[i * 3 + 1]), Math.abs(normalData[i * 3 + 2])));
-        normalData[i * 3] /= factor;
-        normalData[i * 3 + 1] /= factor;
-        normalData[i * 3 + 2] /= factor;
+        if(factor > 0.025) {
+            normalData[i * 3] /= factor;
+            normalData[i * 3 + 1] /= factor;
+            normalData[i * 3 + 2] /= factor;
+        } else {
+            normalData[i * 3] = 0.0;
+            normalData[i * 3 + 1] = 0.0;
+            normalData[i * 3 + 2] = 0.0;
+        }
     }
     const texture2 = gl.createTexture();
     gl.activeTexture(gl.TEXTURE1);

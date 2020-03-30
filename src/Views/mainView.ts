@@ -58,7 +58,8 @@ class MainView implements View {
                 textureData: gl.getUniformLocation(shaderProgram, "textureData"),
                 normalData: gl.getUniformLocation(shaderProgram, "normalData"),
                 lowValColor: gl.getUniformLocation(shaderProgram, "lowValColor"),
-                highValColor: gl.getUniformLocation(shaderProgram, "highValColor")
+                highValColor: gl.getUniformLocation(shaderProgram, "highValColor"),
+                colorAccumulationType: gl.getUniformLocation(shaderProgram, "colorAccumulationType")
             },
         };
     }
@@ -97,6 +98,8 @@ class MainView implements View {
             gl.uniform3f(this.programInfo.uniformLocations.lowValColor, c1[0], c1[1], c1[2]);
             const c2 = settings.colorBone();
             gl.uniform3f(this.programInfo.uniformLocations.highValColor, c2[0], c2[1], c2[2]);
+
+            gl.uniform1i(this.programInfo.uniformLocations.colorAccumulationType, settings.accumulationMethod());
 
             gl.uniformMatrix4fv(
                 this.programInfo.uniformLocations.projectionMatrix,

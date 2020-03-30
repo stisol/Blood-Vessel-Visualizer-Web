@@ -53,7 +53,7 @@ class TextSetting extends Setting {
     public getHtml(): HTMLElement {
         return this.elem;
     }
-    public value(): any {
+    public value(): string {
         return this.elem.innerText;
     }
 }
@@ -83,7 +83,7 @@ class SliderSetting extends Setting {
         return this.elem;
     }
     
-    public value(): any {
+    public value(): number {
         return parseFloat(this.elem.value);
     }
 }
@@ -110,7 +110,7 @@ class CheckboxSetting extends Setting {
         return this.elem;
     }
     
-    public value(): any {
+    public value(): boolean {
         return this.elem.checked;
     }
 }
@@ -142,9 +142,39 @@ class ColorSelectSetting extends Setting {
         return this.elem;
     }
     
-    public value(): any {
-        return this.color;
+    public value(): vec3 {
+        return this.color as vec3;
     }
+}
+
+class SelectSetting extends Setting {
+
+    private elem: HTMLSelectElement;
+
+    constructor(sidebar: HTMLDivElement, titleText: string | null, options: {value: string; text: string}[]) {
+        super(sidebar, titleText);
+
+        this.elem = document.createElement("select");
+
+        options.forEach(option => {
+            const optionElem = document.createElement("option");
+            optionElem.setAttribute("value", option.value);
+            optionElem.innerText = option.text;
+            this.elem.appendChild(optionElem);
+        });
+
+        this.elem.onchange = (): void => {this.updated = true;}
+
+        this.container.appendChild(this.elem);
+    }
+
+    public getHtml(): HTMLElement {
+        return this.elem;
+    }
+    public value(): string {
+        return this.elem.value;
+    }
+    
 }
 
 export default class Settings {
@@ -161,7 +191,11 @@ export default class Settings {
             skinOpacity: new SliderSetting(sidebar, "Skin Opacity", defaultSkinOpacity, 0.0, 1.0, 0.001, "skinOpacity", "slider"),
             isOrthoElem: new CheckboxSetting(sidebar, "Orthographic Camera", false, "orthographic-camera", "checkbox"),
             tissueColor: new ColorSelectSetting(sidebar, "Tissue color", "#FFE0BDFF", "tissueColor", "color-picker"),
-            boneColor: new ColorSelectSetting(sidebar, "Bone color", "#FFFFFFFF", "boneColor", "color-picker")
+            boneColor: new ColorSelectSetting(sidebar, "Bone color", "#FFFFFFFF", "boneColor", "color-picker"),
+            accumulationMethod: new SelectSetting(sidebar, "Color accumulation Method", [
+                {value: "0", text: "Accumulate"},
+                {value: "1", text: "Maximum Intensity Projection"}
+            ])
         };
 
     }
@@ -191,6 +225,11 @@ export default class Settings {
 
     public setFps(fps: string): void {
         (this.settings["fps"] as TextSetting).set("FPS: " + fps);
+    }
+
+    public accumulationMethod(): number {
+        const value = this.settings["accumulationMethod"].value();
+        return parseInt(value);
     }
 }
 
