@@ -1,145 +1,196 @@
 import setupPicker from "./picker";
 import { vec3 } from "gl-matrix";
 
+abstract class Setting {
+    protected container: HTMLDivElement;
+    protected updated: boolean;
+
+    constructor(sidebar: HTMLDivElement, titleText: string|null) {
+        this.updated = true;
+        
+        this.container = document.createElement("div");
+        this.container.classList.add("settingsContainer");
+        sidebar.appendChild(this.container);
+        
+        if(titleText != null) {
+            const title = document.createElement("label");
+            title.innerText = titleText;
+            this.container.appendChild(title);
+        }
+        
+        this.container.appendChild(document.createElement("br"));
+    }
+
+    public abstract getHtml(): HTMLElement;
+
+    public isUpdated(): boolean {
+        const updated = this.updated;
+        this.updated = false;
+        return updated;
+    }
+
+    public abstract value(): any;
+}
+
+class TextSetting extends Setting {
+    private elem: HTMLSpanElement;
+
+    constructor(sidebar: HTMLDivElement, titleText: string|null, initialText: string) {
+        super(sidebar, titleText);
+
+        this.elem = document.createElement("span");
+        this.elem.innerText = initialText;
+        this.container.appendChild(this.elem);
+    }
+
+    public set(text: string): void {
+        this.elem.innerText = text;
+    }
+
+    public getString(): string {
+        return this.elem.innerText;
+    }
+    public getHtml(): HTMLElement {
+        return this.elem;
+    }
+    public value(): any {
+        return this.elem.innerText;
+    }
+}
+
+class SliderSetting extends Setting {
+    private elem: HTMLInputElement;
+
+    constructor(sidebar: HTMLDivElement, titleText: string|null, initialValue: number, min: number, max: number, step: number, id: string, cssClass: string) {
+        super(sidebar, titleText);
+
+        this.elem = document.createElement("input");
+    
+        const input = document.createElement("input");
+        input.type = "range";
+        input.min = String(min);
+        input.max = String(max);
+        input.step = String(step);
+        input.classList.add(cssClass);
+        input.id = id;
+        input.value = String(initialValue);
+        this.elem = input;
+        this.container.appendChild(input);
+        input.oninput = (): void => {this.updated = true;}
+    }
+    
+    public getHtml(): HTMLElement {
+        return this.elem;
+    }
+    
+    public value(): any {
+        return parseFloat(this.elem.value);
+    }
+}
+
+class CheckboxSetting extends Setting {
+    private elem: HTMLInputElement;
+
+    constructor(sidebar: HTMLDivElement, titleText: string|null, initialValue: boolean, id: string, cssClass: string) {
+        super(sidebar, titleText);
+
+        this.elem = document.createElement("input");
+    
+        const input = document.createElement("input");
+        input.type = "checkbox";
+        input.classList.add(cssClass);
+        input.id = id;
+        input.value = String(initialValue);
+        this.elem = input;
+        this.container.appendChild(input);
+        input.oninput = (): void => {this.updated = true;}
+    }
+    
+    public getHtml(): HTMLElement {
+        return this.elem;
+    }
+    
+    public value(): any {
+        return this.elem.checked;
+    }
+}
+
+class ColorSelectSetting extends Setting {
+    private elem: HTMLButtonElement;
+    private color: number[];
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    private setColor(color: any): void {
+        this.color[0] = color.rgba[0];
+        this.color[1] = color.rgba[1];
+        this.color[2] = color.rgba[2];
+        this.updated = true;
+    }
+
+    constructor(sidebar: HTMLDivElement, titleText: string|null, initialValue: string, id: string, cssClass: string) {
+        super(sidebar, titleText);
+        this.color = [0.0, 0.0, 0.0];
+        this.elem = document.createElement("button");
+        //this.elem.innerText = ;
+        this.elem.classList.add(cssClass);
+        this.elem.id = id;
+        this.container.appendChild(this.elem);
+        setupPicker(this.elem, initialValue, this.setColor.bind(this));
+    }
+    
+    public getHtml(): HTMLElement {
+        return this.elem;
+    }
+    
+    public value(): any {
+        return this.color;
+    }
+}
+
 export default class Settings {
-    private skinOpacityElem: HTMLInputElement;
-    private isOrthoElem: HTMLInputElement;
-    private pickerSkin: vec3 = [0.0, 0.0, 1.0];
-    private pickerBone: vec3 = [0.001, 0.0, 0.0];
-    private fpsText: HTMLSpanElement;
-    private updated = true;
+    private settings: {[item: string]: Setting};
+    
 
     public constructor() {
         const sidebar = document.getElementById("sidebar") as HTMLDivElement;
 
-        {
-            const div = document.createElement("div");
-            this.fpsText = document.createElement("span");
-            this.fpsText.innerText = "FPS: N/A";
-            div.appendChild(this.fpsText);
-            sidebar.appendChild(div);
-        }
-
         const defaultSkinOpacity = 0.3;
-        this.skinOpacityElem = createInput(
-            "Skin Opacity",
-            "range",
-            0.0,
-            1.0,
-            defaultSkinOpacity,
-            0.001,
-            "slider",
-            "skinOpacity"
-        );
-        this.skinOpacityElem.oninput = (): void => {this.updated = true;}
+        
+        this.settings = {
+            fps: new TextSetting(sidebar, null, "FPS: N/A"),
+            skinOpacity: new SliderSetting(sidebar, "Skin Opacity", defaultSkinOpacity, 0.0, 1.0, 0.001, "skinOpacity", "slider"),
+            isOrthoElem: new CheckboxSetting(sidebar, "Orthographic Camera", false, "orthographic-camera", "checkbox"),
+            tissueColor: new ColorSelectSetting(sidebar, "Tissue color", "#FFE0BDFF", "tissueColor", "color-picker"),
+            boneColor: new ColorSelectSetting(sidebar, "Bone color", "#FFFFFFFF", "boneColor", "color-picker")
+        };
 
-        this.isOrthoElem = createInput(
-            "Orthographic Camera",
-            "checkbox",
-            0.0,
-            1.0,
-            0.0,
-            1.0,
-            "checkbox",
-            "orthographic-camera"
-        );
-        this.isOrthoElem.oninput = (): void => {this.updated = true;}
-
-        {
-            const div = document.createElement("div");
-            const pickerSkin = document.createElement("button");
-            pickerSkin.innerText = "Tissue color";
-            div.appendChild(pickerSkin);
-            sidebar.appendChild(div);
-            setupPicker(pickerSkin, "#FFE0BDFF", this.setColorSkin.bind(this));
-        }
-        {
-            const div = document.createElement("div");
-            const pickerBone = document.createElement("button");
-            pickerBone.innerText = "Bone color";
-            div.appendChild(pickerBone);
-            sidebar.appendChild(div);
-            setupPicker(pickerBone, "#FFFFFFFF", this.setColorBone.bind(this));
-        }
     }
 
     public isUpdated(): boolean {
-        const v = this.updated;
-        this.updated = false;
-        return v;
+        const values = Object.keys(this.settings).map(key => this.settings[key]);
+        const isUpdated = values.some(x=>x.isUpdated());
+        return isUpdated;
     }
 
     public skinOpacity(): number {
-        const v = parseFloat(this.skinOpacityElem.value);
-        return Math.pow(v, 4);
+        return Math.pow(this.settings["skinOpacity"].value(), 4);
     }
 
     public isOrtographicCamera(): boolean {
-        const v = this.isOrthoElem.checked;
-        return v;
+        return this.settings["isOrthoElem"].value();
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    private setColorSkin(color: any): void {
-        this.pickerSkin[0] = color.rgba[0];
-        this.pickerSkin[1] = color.rgba[1];
-        this.pickerSkin[2] = color.rgba[2];
-        this.updated = true;
-    }
 
     public colorSkin(): vec3 {
-        return this.pickerSkin;
-    }
-
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    private setColorBone(color: any): void {
-        this.pickerBone[0] = color.rgba[0];
-        this.pickerBone[1] = color.rgba[1];
-        this.pickerBone[2] = color.rgba[2];
-        this.updated = true;
+        return this.settings["tissueColor"].value();
     }
 
     public colorBone(): vec3 {
-        return this.pickerBone;
+        return this.settings["boneColor"].value();
     }
 
     public setFps(fps: string): void {
-        this.fpsText.innerText = "FPS: " + fps;
+        (this.settings["fps"] as TextSetting).set("FPS: " + fps);
     }
 }
 
-function createInput(
-    name: string,
-    type: string,
-    min: number,
-    max: number,
-    value: number,
-    step: number,
-    cssClass: string,
-    id: string
-): HTMLInputElement {
-    const sidebar = document.getElementById("sidebar") as HTMLDivElement;
-
-    const div = document.createElement("div");
-    div.classList.add("settingsContainer");
-
-    const title = document.createElement("label");
-    title.innerText = name;
-    div.appendChild(title);
-
-    div.appendChild(document.createElement("br"));
-
-    const input = document.createElement("input");
-    input.type = type;
-    input.min = String(min);
-    input.max = String(max);
-    input.step = String(step);
-    input.classList.add(cssClass);
-    input.id = id;
-    input.value = String(value);
-    div.appendChild(input);
-
-    sidebar.appendChild(div);
-
-    return input;
-}
