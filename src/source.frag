@@ -102,7 +102,10 @@ void main() {
         color.rgb = (0.5 + diff) * color.rgb;
     }
 
-    gl_FragDepth = length(abs(color_hit) - abs(transformed_eye)) / 40.0;
+    gl_FragDepth = 40.0;
+    if(color.a >= 0.99) {
+        gl_FragDepth = length(abs(color_hit) - abs(transformed_eye)) / 40.0;
+    }
     //color = vec4(abs(normal(ray - ray_dir*dt)), 1.0);
     //color = vec4(abs(normal(ray_dir * hit.x)), 1.0);
 }
