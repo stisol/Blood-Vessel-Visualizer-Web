@@ -142,6 +142,10 @@ class MainView implements View {
                 gl.drawElements(gl.TRIANGLES, this.mesh.indiceCount(), gl.UNSIGNED_SHORT, 0);
             }
             gl.disable(gl.CULL_FACE);
+
+            const faceMatrix = mat4.create();
+            mat4.targetTo(faceMatrix, [0.0, 0.0, 0.0], eye, [0.0, 1.0, 0.0]);
+            mat4.multiply(matrix, matrix, faceMatrix);
             this.lights.draw(matrix);
         }
     }
