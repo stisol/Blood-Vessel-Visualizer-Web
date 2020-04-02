@@ -24,9 +24,14 @@ async function Init(): Promise<void> {
         return;
     }
 
-    const renderView: View = new MainView(gl);
+    const volumeData = await bindTexture("./data/hand.dat", gl);
 
-
+    const settings = new Settings();
+    const sidebar = document.getElementById("sidebar") as HTMLDivElement;
+    const transferFunction = new TransferFunctionController(volumeData, sidebar, settings);
+    const renderView: View = new MainView(gl, transferFunction);
+    const camera = new Camera([0.5, 0.5, 0.5]);
+    const view = createSquareMesh();
 
     const viewProgram = initShaderProgram(gl, viewVert, viewFrag);
     const viewInfo = {
@@ -34,22 +39,6 @@ async function Init(): Promise<void> {
         uniformLocations: {
         },
     };
-
-
-    const settings = new Settings();
-    const camera = new Camera([0.5, 0.5, 0.5]);
-
-    //mat4.ortho(projectionMatrix, -1.0, 1.0, 1.0, -1.0, zNear, zFar);
-    //mat4.ortho(projectionMatrix, 0.0, 0.0, 1.0, 1.0, zNear, zFar);
-
-    const volumeData = await bindTexture("./data/hand.dat", gl);
-
-    const view = createSquareMesh();
-    const sidebar = document.getElementById("sidebar") as HTMLDivElement
-    
-    // TEMP
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const transferFunction = new TransferFunctionController(volumeData, sidebar);
 
     const renderLoop = (): void => {
         // render to the canvas

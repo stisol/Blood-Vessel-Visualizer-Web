@@ -9,6 +9,7 @@ import createCubeMesh from '../cubeMesh';
 import vert from "../source.vert";
 import frag from "../source.frag";
 import { initShaderProgram } from '../shader';
+import TransferFunctionController from '../transferFunction';
 
 class MainView implements View {
 
@@ -33,9 +34,12 @@ class MainView implements View {
     private reducedResolutionWidth: number;
     private reducedResolutionHeight: number;
 
+    private transferFunction: TransferFunctionController;
+    private transferFunctionTexture: WebGLTexture;
+
     private lastSettingsUpdate = 0;
     
-    public constructor(gl: WebGL2RenderingContext) {
+    public constructor(gl: WebGL2RenderingContext, transferFunction: TransferFunctionController) {
         this.gl = gl;
 
         this.maxResolutionWidth = 2048;
@@ -44,7 +48,11 @@ class MainView implements View {
         this.reducedResolutionHeight = this.maxResolutionHeight;
         this.renderTarget = new RenderTarget(gl, this.maxResolutionWidth, this.maxResolutionHeight);
 
-
+        // Transfer function setup
+        
+        this.transferFunction = transferFunction;
+        this.transferFunctionTexture = gl.createTexture() as WebGLTexture;
+        
         this.deltaTime = 0.0;
 
         const shaderProgram = initShaderProgram(gl, vert, frag);
@@ -54,11 +62,10 @@ class MainView implements View {
                 projectionMatrix: gl.getUniformLocation(shaderProgram, "uProjectionMatrix"),
                 modelViewMatrix: gl.getUniformLocation(shaderProgram, "uModelViewMatrix"),
                 depth: gl.getUniformLocation(shaderProgram, "uDepth"),
+                transferFunction: gl.getUniformLocation(shaderProgram, "uTransferFunction"),
                 eyePos: gl.getUniformLocation(shaderProgram, "uEyePosition"),
                 textureData: gl.getUniformLocation(shaderProgram, "textureData"),
                 normalData: gl.getUniformLocation(shaderProgram, "normalData"),
-                lowValColor: gl.getUniformLocation(shaderProgram, "lowValColor"),
-                highValColor: gl.getUniformLocation(shaderProgram, "highValColor"),
                 colorAccumulationType: gl.getUniformLocation(shaderProgram, "colorAccumulationType")
             },
         };
@@ -67,7 +74,7 @@ class MainView implements View {
     // eslint-disable-next-line @typescript-eslint/no-empty-function
     render(aspect: number, camera: Camera, settings: Settings): void {
         const gl = this.gl;
-        if(this.updateFps(camera, settings)) {
+        if(this.updateFps(camera, settings) || this.transferFunction.transferFunctionUpdated) {
 
             gl.clearColor(0.0, 0.0, 0.0, 1.0);
             gl.clearDepth(1.0);
@@ -94,11 +101,6 @@ class MainView implements View {
             gl.useProgram(this.programInfo.program);
             gl.uniform3fv(this.programInfo.uniformLocations.eyePos, eye);
 
-            const c1 = settings.colorSkin();
-            gl.uniform3f(this.programInfo.uniformLocations.lowValColor, c1[0], c1[1], c1[2]);
-            const c2 = settings.colorBone();
-            gl.uniform3f(this.programInfo.uniformLocations.highValColor, c2[0], c2[1], c2[2]);
-
             gl.uniform1i(this.programInfo.uniformLocations.colorAccumulationType, settings.accumulationMethod());
 
             gl.uniformMatrix4fv(
@@ -110,6 +112,24 @@ class MainView implements View {
                 this.programInfo.uniformLocations.modelViewMatrix,
                 false,
                 this.modelViewMatrix);
+
+                
+            // Check for transfer function update
+            const tf = this.transferFunction;
+            if (tf.transferFunctionUpdated) {
+                const tex = tf.getTransferFunctionTexture();
+                gl.activeTexture(gl.TEXTURE2);
+                gl.bindTexture(gl.TEXTURE_2D, this.transferFunctionTexture);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 256, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, tex);
+            }
+            else {
+                gl.activeTexture(gl.TEXTURE2);
+                gl.bindTexture(gl.TEXTURE_2D, this.transferFunctionTexture);
+            }
+            gl.uniform1i(this.programInfo.uniformLocations.transferFunction, 2);
 
             gl.uniform1i(this.programInfo.uniformLocations.textureData, 0);
             gl.uniform1i(this.programInfo.uniformLocations.normalData, 1);

@@ -131,7 +131,7 @@ class ColorSelectSetting extends Setting {
         super(sidebar, titleText);
         this.color = [0.0, 0.0, 0.0];
         this.elem = document.createElement("button");
-        //this.elem.innerText = ;
+        this.elem.innerText = "Click to set";
         this.elem.classList.add(cssClass);
         this.elem.id = id;
         this.container.appendChild(this.elem);
@@ -190,8 +190,7 @@ export default class Settings {
             fps: new TextSetting(sidebar, null, "FPS: N/A"),
             skinOpacity: new SliderSetting(sidebar, "Skin Opacity", defaultSkinOpacity, 0.0, 1.0, 0.001, "skinOpacity", "slider"),
             isOrthoElem: new CheckboxSetting(sidebar, "Orthographic Camera", false, "orthographic-camera", "checkbox"),
-            tissueColor: new ColorSelectSetting(sidebar, "Tissue color", "#FFE0BDFF", "tissueColor", "color-picker"),
-            boneColor: new ColorSelectSetting(sidebar, "Bone color", "#FFFFFFFF", "boneColor", "color-picker"),
+            defaultColor: new ColorSelectSetting(sidebar, "Default color", "#FFE0BDFF", "defaultColor", "color-picker"),
             accumulationMethod: new SelectSetting(sidebar, "Color accumulation Method", [
                 {value: "0", text: "Accumulate"},
                 {value: "1", text: "Maximum Intensity Projection"}
@@ -214,13 +213,8 @@ export default class Settings {
         return this.settings["isOrthoElem"].value();
     }
 
-
-    public colorSkin(): vec3 {
-        return this.settings["tissueColor"].value();
-    }
-
-    public colorBone(): vec3 {
-        return this.settings["boneColor"].value();
+    public colorDefault(): vec3 {
+        return this.settings["defaultColor"].value();
     }
 
     public setFps(fps: string): void {

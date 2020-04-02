@@ -11,8 +11,6 @@ out lowp vec4 color;
 
 uniform sampler3D textureData;
 uniform sampler3D normalData;
-uniform vec3 lowValColor;
-uniform vec3 highValColor;
 
 uniform int colorAccumulationType;
 
@@ -20,6 +18,7 @@ const vec3 clipPlanePos = vec3(0.5, 0.0, 0.0);
 const vec3 clipPlaneNormal = vec3(1.0, 0.0, 0.0);
 
 uniform float uDepth;
+uniform sampler2D uTransferFunction;
 
 vec2 intersect_box(vec3 orig, vec3 dir) {
 	const vec3 box_min = vec3(0.0);
@@ -63,12 +62,12 @@ void main() {
             // TODO: Make the data uniform and not dependent on max-size
             float val = texture(textureData, ray).r;
 
-            // TODO: Change with transferfunction
-            vec4 val_color = vec4(normalize(lowValColor), 0.0);
+            vec4 val_color = texture(uTransferFunction, vec2(val, 0.0));
+            
             if(val > 0.45) {
-                val_color = vec4(normalize(highValColor), val);
+                val_color.a = val;
             } else if(val > 0.2){
-                val_color = vec4(normalize(lowValColor), val * uDepth);
+                val_color.a = val * uDepth;
             }
 
             
