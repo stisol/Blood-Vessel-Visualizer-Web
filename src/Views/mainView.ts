@@ -4,7 +4,7 @@ import Settings from '../settings';
 import { mat4 } from 'gl-matrix';
 import Camera from '../camera';
 import Mesh from '../mesh';
-import createCubeMesh from '../cubeMesh';
+import createCubeMesh from '../meshes/cubeMesh';
 
 import vert from "../source.vert";
 import frag from "../source.frag";

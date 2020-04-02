@@ -3,7 +3,7 @@
 import viewVert from "./viewsource.vert";
 import viewFrag from "./viewsource.frag";
 
-import createSquareMesh from "./squareMesh";
+import createSquareMesh from "./meshes/squareMesh";
 import { initShaderProgram, bindTexture } from "./shader";
 import TransferFunctionController from "./transferFunction";
 
@@ -40,6 +40,7 @@ async function Init(): Promise<void> {
         },
     };
 
+    
     const renderLoop = (): void => {
         // render to the canvas
         const renderTarget = renderView.getRenderTarget();

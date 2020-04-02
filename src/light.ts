@@ -1,5 +1,5 @@
 import Mesh from "./mesh";
-import createSquareMesh from "./squareMesh";
+import createSquareMesh from "./meshes/squareMesh";
 
 import Sun from './resources/sun.png';
 import viewVert from "./lightsource.vert";

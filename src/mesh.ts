@@ -3,12 +3,14 @@ class Mesh {
     private colorBuffer: WebGLBuffer | null = null;
     private indiceBuffer: WebGLBuffer | null = null;
     private texCoordsBuffer: WebGLBuffer | null = null;
+    private normalBuffer: WebGLBuffer | null = null;
     private dirty: boolean;
 
     public positionData: number[] = [];
     private indiceData: number[] = [];
     private colorData: number[] = [];
     private texCoordsData: number[] = [];
+    private normalData: number[] = [];
 
     constructor() {
         this.dirty = true;
@@ -28,6 +30,11 @@ class Mesh {
     public setTexturePositions(texCoords: number[]): void {
         this.dirty = true;
         this.texCoordsData = texCoords;
+    }
+
+    public setNormals(normals: number[]): void {
+        this.dirty = true;
+        this.normalData = normals;
     }
 
     private rebuildBuffers(gl: WebGL2RenderingContext): void {
@@ -78,6 +85,15 @@ class Mesh {
             gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.colorData), gl.STATIC_DRAW);
         }
 
+        if(this.normalData != null) {
+            if(this.normalBuffer == null) {
+                this.normalBuffer = gl.createBuffer();
+            }
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.normalBuffer);
+            gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.normalData), gl.STATIC_DRAW);
+        }
+
         this.dirty = false;
     }
 
@@ -105,10 +121,6 @@ class Mesh {
             }
         }
 
-        if (this.indiceBuffer) {
-            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indiceBuffer);
-        }
-
         if(this.texCoordsBuffer) {
             const texCoordPosition = gl.getAttribLocation(shader, "aTextureCoord");
             if (texCoordPosition != -1) {
@@ -116,6 +128,19 @@ class Mesh {
                 gl.vertexAttribPointer(texCoordPosition, 2, gl.FLOAT, false, 0, 0);
                 gl.enableVertexAttribArray(texCoordPosition);
             }
+        }
+
+        if(this.normalBuffer) {
+            const normalPosition = gl.getAttribLocation(shader, "aNormalPosition");
+            if (normalPosition != -1) {
+                gl.bindBuffer(gl.ARRAY_BUFFER, this.normalBuffer);
+                gl.vertexAttribPointer(normalPosition, 3, gl.FLOAT, false, 0, 0);
+                gl.enableVertexAttribArray(normalPosition);
+            }
+        }
+
+        if (this.indiceBuffer) {
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indiceBuffer);
         }
     }
 }

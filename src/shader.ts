@@ -52,6 +52,7 @@ function loadShader(
     if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
         const error = "An error occurred compiling the shaders";
         alert(error + ": " + gl.getShaderInfoLog(shader));
+        console.log(error + ": " + gl.getShaderInfoLog(shader))
         gl.deleteShader(shader);
         return null;
     }
@@ -91,10 +92,8 @@ export async function bindTexture(url: string, gl: WebGL2RenderingContext): Prom
     gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
-    console.log("Transforming to float");
     const volumeData = new Float32Array(floatArray.slice(3));
     const normalData = new Float32Array(volumeData.length * 3);
-    console.log("Success");
 
     for (let i = 0; i < volumeData.length; ++i) {
         volumeData[i] /= max;

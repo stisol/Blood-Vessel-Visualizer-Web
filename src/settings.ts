@@ -1,5 +1,15 @@
 import setupPicker from "./picker";
-import { vec3 } from "gl-matrix";
+import { vec3, mat4, quat, mat3 } from "gl-matrix";
+import createSphereMesh from "./meshes/sphereMesh";
+
+import viewVert from "./shaders/lightPreview.vert";
+import viewFrag from "./shaders/lightPreview.frag";
+
+import lineVert from "./shaders/lightLine.vert";
+import lineFrag from "./shaders/lightLine.frag";
+
+import { initShaderProgram } from "./shader";
+import createLineMesh from "./meshes/lineMesh";
 
 abstract class Setting {
     protected container: HTMLDivElement;
@@ -177,6 +187,128 @@ class SelectSetting extends Setting {
     
 }
 
+class LightSetting extends Setting {
+    private elem: HTMLCanvasElement;
+
+    constructor(sidebar: HTMLDivElement, titleText: string | null) {
+        super(sidebar, titleText);
+
+        this.elem = document.createElement("canvas");
+        this.elem.height=270;
+        this.elem.width = 270;
+
+        this.container.appendChild(this.elem);
+
+        const gl = this.elem.getContext("webgl2");
+        if (gl === null) {
+            alert("Unable to initialize WebGL. Your browser or machine may not support it.");
+            return;
+        }
+
+        
+        const viewProgram = initShaderProgram(gl, viewVert, viewFrag);
+        const viewInfo = {
+            program: viewProgram,
+            uniformLocations: {
+                projectionMatrix: gl.getUniformLocation(viewProgram, "uProjectionMatrix")
+            },
+        };
+        
+        const lineProgram = initShaderProgram(gl, lineVert, lineFrag);
+        const lineInfo = {
+            program: lineProgram,
+            uniformLocations: {
+                projectionMatrix: gl.getUniformLocation(lineProgram, "uProjectionMatrix")
+            },
+        };
+
+        const perspective = mat4.create();
+        mat4.ortho(perspective, -1.0, 1.0, -1.0, 1.0, 0.1, 40.0);
+
+        const model = mat4.create();
+        mat4.translate(model, model, [0.0, 0.0, -5.0]);
+
+        const transform = mat4.create();
+        mat4.mul(transform, perspective, model);
+
+        const sphere = createSphereMesh(0.75, 32, 32, false);
+
+        const line = createLineMesh(0.025, 1.0);
+        const lineTransform = mat4.create();
+
+        const draw = (lTransform: mat4): void => {
+
+            gl.clearColor(0.0, 0.0, 0.0, 1.0);
+            gl.clearDepth(1.0);
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    
+            gl.enable(gl.DEPTH_TEST);
+            gl.depthFunc(gl.LEQUAL);
+    
+            gl.useProgram(viewInfo.program);
+            
+            gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+            gl.clearColor(0, 0, 0, 1);   // clear to white
+    
+            gl.uniformMatrix4fv(viewInfo.uniformLocations.projectionMatrix, false, transform);
+    
+            sphere.bindShader(gl, viewInfo.program);
+            gl.drawElements(gl.TRIANGLES, sphere.indiceCount(), gl.UNSIGNED_SHORT, 0.0);
+            
+            gl.useProgram(lineInfo.program);
+            const newTransform = mat4.create();
+            mat4.multiply(newTransform, model, lTransform);
+            mat4.multiply(newTransform, perspective, newTransform);
+            gl.uniformMatrix4fv(lineInfo.uniformLocations.projectionMatrix, false, newTransform);
+            line.bindShader(gl, lineInfo.program);
+            gl.drawElements(gl.TRIANGLES, line.indiceCount(), gl.UNSIGNED_SHORT, 0.0);
+        }
+        draw(lineTransform);
+
+
+        this.elem.addEventListener('mousemove', (event: MouseEvent) => {
+            const rect = this.elem.getBoundingClientRect();
+            const x = (event.clientX - rect.left) / 270.0 * 2.0 - 1.0;
+            const y = (event.clientY - rect.top) / 270.0 * 2.0 - 1.0;
+            const direction = vec3.fromValues(-x, y, 0.0);
+            vec3.transformMat4(direction, direction, transform);
+            vec3.normalize(direction, direction);
+            vec3.negate(direction, direction);
+            
+
+            const primaryAxis = direction;
+            let secondAxis = vec3.fromValues(1.0, 0.0, 0.0);
+
+            if(vec3.dot(primaryAxis, secondAxis) == 1.0) {
+                secondAxis = vec3.fromValues(0.0, 0.0, 1.0);
+            }
+            const thirdAxis = vec3.create();
+            vec3.cross(thirdAxis, primaryAxis, secondAxis);
+            vec3.cross(secondAxis, primaryAxis, thirdAxis);
+            const rotation = mat4.fromValues(primaryAxis[0], primaryAxis[1], primaryAxis[2], 0.0, secondAxis[0], secondAxis[1], secondAxis[2], 0.0, thirdAxis[0], thirdAxis[1], thirdAxis[2], 0.0, 0.0, 0.0, 0.0, 1.0)
+
+            /*const qRotation = quat.create();
+            quat.fromMat3(qRotation, rotation);
+            mat4.fromRotationTranslation(lineTransform, qRotation, [0.0, 0.0, 0.0]);*/
+
+            console.log(mat4.str(rotation));
+            draw(rotation);
+            console.log(x, y, direction);
+            console.log(primaryAxis, secondAxis, thirdAxis);
+        });
+
+        // TODO: Draw light spec
+    }
+    
+    public getHtml(): HTMLElement {
+        throw new Error("Method not implemented.");
+    }
+    public value() {
+        throw new Error("Method not implemented.");
+    }
+
+}
+
 export default class Settings {
     private settings: {[item: string]: Setting};
     
@@ -194,7 +326,8 @@ export default class Settings {
             accumulationMethod: new SelectSetting(sidebar, "Color accumulation Method", [
                 {value: "0", text: "Accumulate"},
                 {value: "1", text: "Maximum Intensity Projection"}
-            ])
+            ]),
+            light: new LightSetting(sidebar, "Light position")
         };
 
     }
