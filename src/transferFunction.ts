@@ -2,10 +2,11 @@ export default class TransferFunctionController {
     private canvas: HTMLCanvasElement;
     private ctx: CanvasRenderingContext2D;
     private histogramData: number[];
-    private transferFunctions: TransferFunction[] = [];
+    private transferFunction: TransferFunction;
 
     private dragging = false;
-    private draggingIds: [number, number] = [0, 0];
+    private draggingId = 0;
+    private lastClick = 0;
 
     private readonly handleSize = 6;
     private readonly margin = 8;
@@ -39,12 +40,7 @@ export default class TransferFunctionController {
         this.canvas.onmousedown = this.onMouseDown.bind(this);
         this.canvas.onmouseleave = this.onMouseLeave.bind(this);
 
-        this.transferFunctions.push(
-            new TransferFunction("white", [[0.2, 0], [0.315, 0.3], [0.45, 0]])
-        );
-        this.transferFunctions.push(
-            new TransferFunction("orange", [[0.45, 0], [0.7, 1], [1, 0]])
-        );
+        this.transferFunction = new TransferFunction([[0, 0, "blue"], [0.315, 0.3, "green"], [1, 0, "red"]]);
 
         this.ctx = this.canvas.getContext("2d") as CanvasRenderingContext2D;
         this.draw();
@@ -70,25 +66,23 @@ export default class TransferFunctionController {
             this.ctx.fillRect(x, margin + maxHeight - h, itemWidth, h);
         }
 
-        // Draw transfer functions.
-        this.transferFunctions.forEach(tf => {
-            // Draw the line.
-            this.ctx.strokeStyle = tf.color;
-            this.ctx.beginPath();
-            tf.controlPoints.forEach(p => {
-                const [x, y] = this.dataToCanvas(p);
-                this.ctx.lineTo(x, y);
-            });
-            this.ctx.stroke();
-
-            // Draw circles at each point.
-            this.ctx.fillStyle = tf.color;
-            tf.controlPoints.forEach(p => {
-                const [x, y] = this.dataToCanvas(p);
-                const v = this.handleSize;
-                this.ctx.fillRect(x - (v / 2), y - (v / 2), v, v);
-            });
+        // Draw transfer function, line first
+        const tf = this.transferFunction;
+        this.ctx.strokeStyle = "grey";
+        this.ctx.beginPath();
+        tf.controlPoints.forEach(p => {
+            const [x, y] = this.dataToCanvas(p);
+            this.ctx.lineTo(x, y);
         });
+        this.ctx.stroke();
+
+        // Draw circles at each point.
+        tf.controlPoints.forEach(p => {
+            this.ctx.fillStyle = p[2];
+            const [x, y] = this.dataToCanvas(p);
+            const v = this.handleSize;
+            this.ctx.fillRect(x - (v / 2), y - (v / 2), v, v);
+        });        
     }
 
     /**
@@ -109,7 +103,7 @@ export default class TransferFunctionController {
     /**
      * Converts data coordinates to canvas space.
      */
-    private dataToCanvas(data: [number, number]): [number, number] {
+    private dataToCanvas(data: [number, number, string]): [number, number] {
         const x = data[0], y = data[1];
         const m = this.margin;
         const h = this.canvas.height, w = this.canvas.width;
@@ -123,15 +117,45 @@ export default class TransferFunctionController {
     private onMouseDown(event: MouseEvent): void {
         const [x, y] = this.clientToMouseCoords(event);
 
-        for (let i = 0; i < this.transferFunctions.length; i++) {
-            const tf = this.transferFunctions[i];
-            for (let j = 0; j < tf.controlPoints.length; j++) {
-                const [px, py] = this.dataToCanvas(tf.controlPoints[j]);
-                const xok = Math.abs(x - px) < this.handleSize;
-                const yok = Math.abs(y - py) < this.handleSize;
-                if (xok && yok) {
+        // Doubleclick detection
+        const newTime = Date.now();
+        const doubleclick = newTime - this.lastClick < 250;
+        this.lastClick = newTime;
+        
+        const tf = this.transferFunction;
+        let didSomething = false;
+        for (let i = 0; i < tf.controlPoints.length; i++) {
+            const [px, py] = this.dataToCanvas(tf.controlPoints[i]);
+            const xok = Math.abs(x - px) < this.handleSize;
+            const yok = Math.abs(y - py) < this.handleSize;
+            if (xok && yok) {
+                const notEndpoint = i != 0 || i != tf.controlPoints.length - 1;
+                // LMB: Drag
+                if (!doubleclick) {
                     this.dragging = true;
-                    this.draggingIds = [i, j];
+                    this.draggingId = i;
+                }
+                //RMB: Remove
+                else if (doubleclick && notEndpoint) {
+                    tf.controlPoints.splice(i, 1);
+                    this.draw();
+                }
+                didSomething = true;
+                break;
+            }
+        }
+        
+        // If nothing else was done for a right-click, add a point.
+        if (!didSomething && doubleclick) {
+            // Validate coordinates
+            const [xx, yy] = this.canvasToData(x, y);
+            if (0 < xx && xx < 1) {
+                for (let i = 0; i < tf.controlPoints.length; i++) {
+                    if (xx < tf.controlPoints[i][0]) {
+                        tf.controlPoints.splice(i, 0, [xx, yy, "pink"]);
+                        this.draw();
+                        break;
+                    }
                 }
             }
         }
@@ -140,11 +164,20 @@ export default class TransferFunctionController {
     private onMouseMove(event: MouseEvent): void {
         if (!this.dragging) return;
 
-        const tf = this.transferFunctions[this.draggingIds[0]];
-        const p = tf.controlPoints[this.draggingIds[1]]
+        const cp = this.transferFunction.controlPoints;
+        const p = cp[this.draggingId];
         const [mx, my] = this.clientToMouseCoords(event);
-        const [x, y] = this.canvasToData(mx, my);
-        p[0] = x, p[1] = y;
+        const m = this.canvasToData(mx, my);
+        
+        // Don't move x coord of first and last point.
+        const isEndpoint = this.draggingId != 0 && this.draggingId != cp.length - 1;
+        const isValidMove = isEndpoint
+            && m[0] > cp[this.draggingId - 1][0]
+            && m[0] < cp[this.draggingId + 1][0];
+
+        if (isValidMove) p[0] = m[0];
+        p[1] = m[1];
+        
         this.draw();
     }
 
@@ -163,11 +196,13 @@ export default class TransferFunctionController {
 }
 
 export class TransferFunction {
-    public controlPoints: [number, number][];
-    public color: string;
-
-    public constructor(color: string, controlPoints: [number, number][]) {
-        this.color = color;
+    public controlPoints: [number, number, string][];
+    
+    public constructor(controlPoints: [number, number, string][]) {
         this.controlPoints = controlPoints;
+    }
+
+    public bake(): number[] {
+        throw "Unimplemented.";
     }
 }
