@@ -64,15 +64,7 @@ void main() {
             float val = texture(textureData, ray).r;
 
             vec4 val_color = texture(uTransferFunction, vec2(val, 0.0));
-            /*
-            if(val > 0.45) {
-                val_color.a = val;
-            } else if(val > 0.2){
-                val_color.a = val * uDepth;
-            } else {
-
-            }*/
-
+            val_color.a = pow(val_color.a, 3.0);
             
             if(colorAccumulationType == 0) {
                 // Color compositing. Multiplicative
