@@ -12,7 +12,7 @@ import { initShaderProgram } from '../shader';
 import TransferFunctionController from '../transferFunction';
 import Light from '../light';
 
-class MainView implements View {
+export default class MainView implements View {
 
     private gl: WebGL2RenderingContext;
     private renderTarget: RenderTarget;
@@ -22,7 +22,7 @@ class MainView implements View {
 
     private mesh: Mesh = createCubeMesh();
 
-    private programInfo: any;
+    private programInfo: ProgramInfo;
 
     private modelCenter: [number, number, number] = [0.5, 0.5, 0.5];
 
@@ -61,19 +61,7 @@ class MainView implements View {
         this.deltaTime = 0.0;
 
         const shaderProgram = initShaderProgram(gl, vert, frag);
-        this.programInfo = {
-            program: shaderProgram,
-            uniformLocations: {
-                projectionMatrix: gl.getUniformLocation(shaderProgram, "uProjectionMatrix"),
-                modelViewMatrix: gl.getUniformLocation(shaderProgram, "uModelViewMatrix"),
-                depth: gl.getUniformLocation(shaderProgram, "uDepth"),
-                transferFunction: gl.getUniformLocation(shaderProgram, "uTransferFunction"),
-                eyePos: gl.getUniformLocation(shaderProgram, "uEyePosition"),
-                textureData: gl.getUniformLocation(shaderProgram, "textureData"),
-                normalData: gl.getUniformLocation(shaderProgram, "normalData"),
-                colorAccumulationType: gl.getUniformLocation(shaderProgram, "colorAccumulationType")
-            },
-        };
+        this.programInfo = new ProgramInfo(gl, shaderProgram);
     }
 
     // eslint-disable-next-line @typescript-eslint/no-empty-function
@@ -205,4 +193,42 @@ class MainView implements View {
     }
 }
 
-export default MainView;
+class ProgramInfo {
+    program: WebGLShader;
+    uniformLocations: UniformLocations;
+
+    constructor(gl: WebGL2RenderingContext, program: WebGLShader) {
+        this.program = program;
+        this.uniformLocations = new UniformLocations(gl, program);
+    }
+}
+
+class UniformLocations {
+    projectionMatrix: WebGLUniformLocation;
+    modelViewMatrix: WebGLUniformLocation;
+    depth: WebGLUniformLocation;
+    transferFunction: WebGLUniformLocation;
+    eyePos: WebGLUniformLocation;
+    textureData: WebGLUniformLocation;
+    normalData: WebGLUniformLocation;
+    colorAccumulationType: WebGLUniformLocation;
+
+    constructor(gl: WebGL2RenderingContext, shaderProgram: WebGLShader) {        
+        this.projectionMatrix = 
+            gl.getUniformLocation(shaderProgram, "uProjectionMatrix") as WebGLUniformLocation;
+        this.modelViewMatrix = 
+            gl.getUniformLocation(shaderProgram, "uModelViewMatrix") as WebGLUniformLocation;
+        this.depth = 
+            gl.getUniformLocation(shaderProgram, "uDepth") as WebGLUniformLocation;
+        this.transferFunction = 
+            gl.getUniformLocation(shaderProgram, "uTransferFunction") as WebGLUniformLocation;
+        this.eyePos = 
+            gl.getUniformLocation(shaderProgram, "uEyePosition") as WebGLUniformLocation;
+        this.textureData = 
+            gl.getUniformLocation(shaderProgram, "textureData") as WebGLUniformLocation;
+        this.normalData = 
+            gl.getUniformLocation(shaderProgram, "normalData") as WebGLUniformLocation;
+        this.colorAccumulationType = 
+            gl.getUniformLocation(shaderProgram, "colorAccumulationType") as WebGLUniformLocation;
+    }
+}

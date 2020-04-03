@@ -1,5 +1,5 @@
 import setupPicker from "./picker";
-import { vec3, mat4, quat, mat3 } from "gl-matrix";
+import { vec3, mat4 } from "gl-matrix";
 import createSphereMesh from "./meshes/sphereMesh";
 
 import viewVert from "./shaders/lightPreview.vert";
@@ -39,6 +39,7 @@ abstract class Setting {
         return updated;
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     public abstract value(): any;
 }
 
@@ -303,10 +304,10 @@ class LightSetting extends Setting {
     public getHtml(): HTMLElement {
         throw new Error("Method not implemented.");
     }
-    public value() {
+
+    public value(): never {
         throw new Error("Method not implemented.");
     }
-
 }
 
 export default class Settings {
