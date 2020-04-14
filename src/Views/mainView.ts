@@ -191,7 +191,7 @@ class MainView implements View {
         }
         
         let  factor = fps / optimalFps;
-        factor = Math.max(Math.min(Math.sqrt(factor), 1.0), 0.1);
+        factor = Math.max(Math.min(Math.sqrt(factor), 1.0), 0.3);
         let newFactor = Math.round(factor * 10) / 10;
         newFactor = Math.max(Math.min(newFactor, 1.0), 0.7);
         if(newFactor < 1.0 && avgFps < optimalFps && fps < optimalFps) {

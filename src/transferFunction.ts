@@ -56,10 +56,10 @@ export default class TransferFunctionController {
         const bone = new Color(254, 254, 254);
         this.transferFunction = new TransferFunction([
             [0, 0, df],
-            [0.3, 0, df],
-            [0.35, 1, skin],
+            [0.15, 0, df],
+            [0.3, 0.1, skin],
             [0.4, 0, df],            
-            [0.5, 1, bone],
+            [0.41, 1, bone],
             [0.6, 0, df],
             [1, 0, df],
         ]);

@@ -50,20 +50,27 @@ void main() {
     // Ignore if behind view
     hit.x = max(hit.x, 0.0);
 
+    // TODO: Make these uniform
+    // value between (0.0, 1.0] that defines the step resoultion based on size
+    const float resolution = 0.1;
+    // Volume dimension
+    const vec3 volume_dim = vec3(244, 124, 257);
+    
 	// Compute optimal step size
-	vec3 dt_vec = vec3(0.001);
-	float dt = min(dt_vec.x, min(dt_vec.y, dt_vec.z));
+	vec3 dt_vec = 1.0 / (volume_dim * abs(ray_dir));
+	float dt = min(dt_vec.x, min(dt_vec.y, dt_vec.z)) * resolution;
 
     vec3 ray = transformed_eye + ray_dir * hit.x;
     vec3 color_hit = ray;
     for(float t = hit.x; t < hit.y; t += dt) {
         
         float d = dot(ray - clipPlanePos, clipPlaneNormal);
-        if(d < 0.0) {
+        if(d < 0.0 || true) {
             // TODO: Make the data uniform and not dependent on max-size
             float val = texture(textureData, ray).r;
 
-            vec4 val_color = texture(uTransferFunction, vec2(val, 0.0));
+            vec4 val_color = texture(uTransferFunction, vec2(val, 0.5));
+            //val_color.a = val_color.a * val_color.a * val_color.a;
             /*
             if(val > 0.45) {
                 val_color.a = val;
@@ -74,11 +81,19 @@ void main() {
             }*/
 
             
+            // opacity correction
+            val_color.a = 1.0 - pow(1.0 - val_color.a, resolution);
+
             if(colorAccumulationType == 0) {
                 // Color compositing. Multiplicative
                 color.rgb += (1.0 - color.a) * (val_color.a * val_color.rgb);
                 color.a += (1.0 - color.a) * val_color.a;
                 color_hit = ray;
+                // Abort when integrated opacity is close to opaque
+                if(color.a >= 0.99) {
+                    break;
+                }
+                
             } else {
                 if(length(color.rgb) < length(val_color.rgb * val_color.a)) {
                     color.rgba = val_color;
@@ -87,10 +102,6 @@ void main() {
                 }
             }
 
-            // Abort when integrated opacity is close to opaque
-            if(color.a >= 0.99) {
-                break;
-            }
         }
 
         ray += ray_dir * dt;
@@ -99,7 +110,7 @@ void main() {
 
     if(length(normal(color_hit)) > 0.001) { 
         float diff = max(dot(normal(color_hit), ray_dir), 0.0);
-        color.rgb = (0.5 + diff) * color.rgb;
+        color.rgb = (0.2 + diff) * color.rgb;
     }
 
     gl_FragDepth = 40.0;
