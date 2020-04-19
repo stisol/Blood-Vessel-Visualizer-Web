@@ -111,18 +111,18 @@ export async function bindTexture(url: string, gl: WebGL2RenderingContext): Prom
         volumeData
     );
 
-    let index = (x: number, y: number, z: number) => Math.max(Math.min(x + y * width + z * width * height, volumeData.length), 0);
+    const index = (x: number, y: number, z: number): number =>
+        Math.max(Math.min(x + y * width + z * width * height, volumeData.length), 0);
 
     for (let i = 0; i < volumeData.length; ++i) {
-        let x = Math.round((i)) % width;
-        let y = Math.round((i / width)) % height;
-        let z = Math.round((i / width / height)) % depth;
+        const x = Math.round((i)) % width;
+        const y = Math.round((i / width)) % height;
+        const z = Math.round((i / width / height)) % depth;
         normalData[i * 3] = (volumeData[index(x, y, z - 1)] - volumeData[index(x, y, z + 1)]) / 2.0;
         normalData[i * 3 + 1] = -(volumeData[index(x, y - 1, z)] - volumeData[index(x, y + 1, z)]) / 2.0;
         normalData[i * 3 + 2] = (volumeData[index(x - 1, y, z)] - volumeData[index(x + 1, y, z)]) / 2.0;
 
-        
-        let factor = Math.max(Math.abs(normalData[i * 3]), Math.max(Math.abs(normalData[i * 3 + 1]), Math.abs(normalData[i * 3 + 2])));
+        const factor = Math.max(Math.abs(normalData[i * 3]), Math.max(Math.abs(normalData[i * 3 + 1]), Math.abs(normalData[i * 3 + 2])));
         if(factor > 0.025) {
             normalData[i * 3] /= factor;
             normalData[i * 3 + 1] /= factor;

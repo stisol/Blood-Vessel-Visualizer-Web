@@ -52,7 +52,7 @@ void main() {
 
     // TODO: Make these uniform
     // value between (0.0, 1.0] that defines the step resoultion based on size
-    const float resolution = 0.1;
+    const float resolution = 0.2;
     // Volume dimension
     const vec3 volume_dim = vec3(244, 124, 257);
     
@@ -70,16 +70,7 @@ void main() {
             float val = texture(textureData, ray).r;
 
             vec4 val_color = texture(uTransferFunction, vec2(val, 0.5));
-            //val_color.a = val_color.a * val_color.a * val_color.a;
-            /*
-            if(val > 0.45) {
-                val_color.a = val;
-            } else if(val > 0.2){
-                val_color.a = val * uDepth;
-            } else {
-
-            }*/
-
+            //val_color.a = pow(val_color.a, 3.0);
             
             // opacity correction
             val_color.a = 1.0 - pow(1.0 - val_color.a, resolution);

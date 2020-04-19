@@ -56,8 +56,8 @@ export default class TransferFunctionController {
         const bone = new Color(254, 254, 254);
         this.transferFunction = new TransferFunction([
             [0, 0, df],
-            [0.15, 0, df],
-            [0.3, 0.1, skin],
+            [0.3, 0, df],
+            [0.35, 0.15, skin],
             [0.4, 0, df],            
             [0.41, 1, bone],
             [0.6, 0, df],
@@ -222,6 +222,7 @@ export default class TransferFunctionController {
     }
 
     public getTransferFunctionTexture(): Uint8Array {
+        this.transferFunctionUpdated = false;
         return this.transferFunction.bake();
     }
 }
@@ -268,10 +269,13 @@ export class TransferFunction {
             }
 
             const i0 = i * 4;
+            const a1 = Math.round(Math.pow(c1[1], 3.0) * 255.0);
+            const a2 = Math.round(Math.pow(c2[1], 3.0) * 255.0);
+
             tex[i0 + 0] = this.lerp(xval, c1[0], c2[0], c1[2].r, c2[2].r);
             tex[i0 + 1] = this.lerp(xval, c1[0], c2[0], c1[2].g, c2[2].g);
             tex[i0 + 2] = this.lerp(xval, c1[0], c2[0], c1[2].b, c2[2].b);
-            tex[i0 + 3] = this.lerp(xval, c1[0], c2[0], c1[1]*255.0, c2[1]*255.0);
+            tex[i0 + 3] = this.lerp(xval, c1[0], c2[0], a1, a2);
         }
 
         return tex;
