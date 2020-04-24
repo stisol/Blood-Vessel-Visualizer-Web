@@ -11,10 +11,9 @@ export default class Camera {
 
     private updated = true;
 
-    public constructor(target: vec3) {
+    public constructor(target: vec3, canvas: HTMLCanvasElement) {
         this.target = target;
 
-        const canvas = document.getElementById("theCanvas") as HTMLCanvasElement;
         canvas.onmousedown = this.setMouseDown.bind(this, true);
         canvas.onmouseup = this.setMouseDown.bind(this, false);
         canvas.onmouseleave = this.setMouseDown.bind(this, false);

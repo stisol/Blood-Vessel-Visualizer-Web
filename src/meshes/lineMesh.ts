@@ -4,10 +4,10 @@ export default function createLineMesh(width: number, length: number): Mesh {
     const mesh = new Mesh();
     const bo = -width / 2.0;
     const t = width/2.0;
-    const l = 0;
-    const r = length;
-    const f = -width/2.0;
-    const ba = width/2.0;
+    const f = 0;
+    const ba = length;
+    const r = -width/2.0;
+    const l = width/2.0;
     const positions = [
         // Front face
         l, bo, f,

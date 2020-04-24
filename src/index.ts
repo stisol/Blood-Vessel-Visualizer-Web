@@ -30,8 +30,8 @@ async function Init(): Promise<void> {
     const sidebar = document.getElementById("sidebar") as HTMLDivElement;
     const transferFunction = new TransferFunctionController(volumeData, sidebar, settings);
     const renderView: View = new MainView(gl, transferFunction);
-    const camera = new Camera([0.5, 0.5, 0.5]);
-    const view = createSquareMesh();
+    const camera = new Camera([0.5, 0.5, 0.5], document.getElementById("theCanvas") as HTMLCanvasElement);
+    const view = createSquareMesh(-1.0, 1.0);
 
     const viewProgram = initShaderProgram(gl, viewVert, viewFrag);
     const viewInfo = {
@@ -43,9 +43,6 @@ async function Init(): Promise<void> {
     
     const renderLoop = (): void => {
         // render to the canvas
-        const renderTarget = renderView.getRenderTarget();
-        renderTarget.bindFramebuffer();
-
         // Setup required OpenGL state for drawing the back faces and
         // composting with the background color
         gl.enable(gl.BLEND);
@@ -65,7 +62,7 @@ async function Init(): Promise<void> {
         gl.useProgram(viewInfo.program);
         // render the cube with the texture we just rendered to
         gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, renderTarget.getTexture());
+        gl.bindTexture(gl.TEXTURE_2D, renderView.getRenderTexture());
         // Tell WebGL how to convert from clip space to pixels
         gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
         gl.clearColor(0, 0, 0, 1);   // clear to white

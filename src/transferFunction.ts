@@ -57,10 +57,11 @@ export default class TransferFunctionController {
         this.transferFunction = new TransferFunction([
             [0, 0, df],
             [0.3, 0, df],
-            [0.35, 0.15, skin],
+            [0.3, 0.25, skin],
+            [0.4, 0.25, skin],
             [0.4, 0, df],            
-            [0.41, 1, bone],
-            [0.6, 0, df],
+            [0.4, 1, bone],
+            [1.0, 1.0, bone],
             [1, 0, df],
         ]);
 
@@ -256,7 +257,6 @@ export class TransferFunction {
 
     public bake(): Uint8Array {
         const tex = new Uint8Array(256 * 4);
-
         let cpi = 0;
         let c1 = this.controlPoints[cpi];
         let c2 = this.controlPoints[cpi + 1];
@@ -277,11 +277,13 @@ export class TransferFunction {
             tex[i0 + 2] = this.lerp(xval, c1[0], c2[0], c1[2].b, c2[2].b);
             tex[i0 + 3] = this.lerp(xval, c1[0], c2[0], a1, a2);
         }
-
         return tex;
     }
 
     private lerp(x: number, x0: number, x1: number, y0: number, y1: number): number {
-        return (y0 * (x1 - x0) + y1 * (x - x0)) / (x1 - x0);
+        //return (y0 * (x1 - x0) + y1 * (x - x0)) / (x1 - x0);
+        const divident = x1-x0;
+        if(divident == 0) return y0;
+        return y0 + (x-x0) * (y1 - y0) / divident;
     }
 }

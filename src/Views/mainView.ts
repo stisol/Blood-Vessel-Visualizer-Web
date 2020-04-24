@@ -1,7 +1,7 @@
 import View from '../view';
 import RenderTarget from '../renderTarget';
 import Settings from '../settings';
-import { mat4 } from 'gl-matrix';
+import { mat4, vec3 } from 'gl-matrix';
 import Camera from '../camera';
 import Mesh from '../mesh';
 import createCubeMesh from '../meshes/cubeMesh';
@@ -69,6 +69,8 @@ export default class MainView implements View {
         const gl = this.gl;
         if(this.updateFps(camera, settings) || this.transferFunction.transferFunctionUpdated) {
 
+            this.renderTarget.bindFramebuffer();
+
             gl.clearColor(0.0, 0.0, 0.0, 1.0);
             gl.clearDepth(1.0);
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -132,14 +134,24 @@ export default class MainView implements View {
             gl.disable(gl.CULL_FACE);
 
             const faceMatrix = mat4.create();
-            mat4.targetTo(faceMatrix, [0.0, 0.0, 0.0], eye, [0.0, 1.0, 0.0]);
-            mat4.multiply(matrix, matrix, faceMatrix);
-            this.lights.draw(matrix);
+            const lightMatrix = mat4.create();
+
+            const lightTransform = settings.lightTransform();
+            const lightPos = vec3.fromValues(0.0, 0.0, 1.0);
+            vec3.transformMat4(lightPos, lightPos, lightTransform);
+            vec3.add(lightPos, lightPos, vec3.fromValues(0.5, 0.5, 0.5));
+
+            mat4.targetTo(faceMatrix, lightPos, eye, [0.0, 1.0, 0.0]);
+            mat4.multiply(lightMatrix, faceMatrix, lightMatrix);
+            mat4.multiply(lightMatrix, this.modelViewMatrix, lightMatrix);
+            mat4.multiply(lightMatrix, this.projectionMatrix, lightMatrix);
+
+            this.lights.draw(lightMatrix, vec3.create());
         }
     }
 
-    getRenderTarget(): RenderTarget {
-        return this.renderTarget;
+    getRenderTexture(): WebGLTexture {
+        return this.renderTarget.getTexture();
     }
 
 
@@ -163,7 +175,7 @@ export default class MainView implements View {
         settings.setFps(Math.round(avgFps).toString());
         
         const viewUpdated = settings.isUpdated() || camera.isUpdated();
-        if (!viewUpdated && this.lastSettingsUpdate + 1000 < Date.now()) {
+        if (!viewUpdated && this.lastSettingsUpdate + 250 < Date.now()) {
             const doUpdate = this.maxResolutionWidth != this.renderTarget.getWidth() ||
                 this.maxResolutionHeight != this.renderTarget.getHeight();
             this.renderTarget.resize(this.maxResolutionWidth, this.maxResolutionHeight);

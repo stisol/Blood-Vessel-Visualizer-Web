@@ -4,7 +4,7 @@ import Settings from './settings';
 
 interface View {
     render(aspect: number, camera: Camera, settings: Settings): void;
-    getRenderTarget(): RenderTarget;
+    getRenderTexture(): WebGLTexture;
 }
 
 export default View;

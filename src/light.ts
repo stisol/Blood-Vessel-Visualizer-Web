@@ -5,7 +5,7 @@ import Sun from './resources/sun.png';
 import viewVert from "./lightsource.vert";
 import viewFrag from "./lightsource.frag";
 import { initShaderProgram } from "./shader";
-import { mat4 } from "gl-matrix";
+import { mat4, vec3 } from "gl-matrix";
 
 export default class Light {
     private lightMesh: Mesh;
@@ -13,12 +13,15 @@ export default class Light {
     private shader: WebGLProgram;
     private gl: WebGL2RenderingContext;
 
+    private lightUniform: WebGLUniformLocation;
+
     constructor(gl: WebGL2RenderingContext) {
-        this.lightMesh = createSquareMesh();
+        this.lightMesh = createSquareMesh(-0.1, 0.1);
         this.lightTexture = this.loadTexture(gl);
         
         const viewProgram = initShaderProgram(gl, viewVert, viewFrag);
         this.shader =  viewProgram;
+        this.lightUniform = gl.getUniformLocation(viewProgram, "uLightPosition") as WebGLUniformLocation;
 
         this.gl = gl;
     }
@@ -47,9 +50,10 @@ export default class Light {
         return texture;
     }
 
-    draw(transform: mat4): void {
+    draw(transform: mat4, position: vec3): void {
         const gl = this.gl;
         gl.useProgram(this.shader);
+        gl.uniform3fv(this.lightUniform, position);
         gl.uniformMatrix4fv(gl.getUniformLocation(this.shader, "uProjectionMatrix"), false, transform);
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, this.lightTexture);

@@ -86,7 +86,7 @@ export async function bindTexture(url: string, gl: WebGL2RenderingContext): Prom
 
     gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_BASE_LEVEL, 0);
     gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MAX_LEVEL, 0);
-    gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+    gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
     gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
@@ -123,15 +123,15 @@ export async function bindTexture(url: string, gl: WebGL2RenderingContext): Prom
         normalData[i * 3 + 2] = (volumeData[index(x - 1, y, z)] - volumeData[index(x + 1, y, z)]) / 2.0;
 
         const factor = Math.max(Math.abs(normalData[i * 3]), Math.max(Math.abs(normalData[i * 3 + 1]), Math.abs(normalData[i * 3 + 2])));
-        if(factor > 0.025) {
+        //if(factor > 0.025) {
             normalData[i * 3] /= factor;
             normalData[i * 3 + 1] /= factor;
             normalData[i * 3 + 2] /= factor;
-        } else {
+        /*} else {
             normalData[i * 3] = 0.0;
             normalData[i * 3 + 1] = 0.0;
             normalData[i * 3 + 2] = 0.0;
-        }
+        }*/
     }
     const texture2 = gl.createTexture();
     gl.activeTexture(gl.TEXTURE1);

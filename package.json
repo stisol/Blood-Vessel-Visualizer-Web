@@ -34,6 +34,7 @@
     "webpack-dev-server": "^3.10.3"
   },
   "dependencies": {
+    "@petamoriken/float16": "^1.1.1",
     "binary-parser": "^1.5.0",
     "gl-matrix": "^3.2.1",
     "vanilla-picker": "^2.10.1"
