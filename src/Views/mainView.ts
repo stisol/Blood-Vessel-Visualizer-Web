@@ -65,9 +65,9 @@ export default class MainView implements View {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-empty-function
-    render(aspect: number, camera: Camera, settings: Settings): void {
+    render(aspect: number, camera: Camera, settings: Settings, settingsUpdated: boolean): void {
         const gl = this.gl;
-        if(this.updateFps(camera, settings) || this.transferFunction.transferFunctionUpdated) {
+        if(this.updateFps(camera, settings, settingsUpdated) || this.transferFunction.transferFunctionUpdated) {
 
             gl.clearColor(0.0, 0.0, 0.0, 1.0);
             gl.clearDepth(1.0);
@@ -143,8 +143,7 @@ export default class MainView implements View {
     }
 
 
-    private updateFps(camera: Camera, settings: Settings): boolean {
-
+    private updateFps(camera: Camera, settings: Settings, settingsUpdated: boolean): boolean {
         const optimalFps = 30;
 
         const newTime = window.performance.now();
@@ -162,11 +161,13 @@ export default class MainView implements View {
         const avgFps = this.fpsLog.reduce((a, b) => a+b, 0) / 10.0;
         settings.setFps(Math.round(avgFps).toString());
         
-        const viewUpdated = settings.isUpdated() || camera.isUpdated();
-        if (!viewUpdated && this.lastSettingsUpdate + 1000 < Date.now()) {
+        const viewUpdated = settingsUpdated || camera.isUpdated();
+        if (!viewUpdated && this.lastSettingsUpdate + 500 < Date.now()) {
             const doUpdate = this.maxResolutionWidth != this.renderTarget.getWidth() ||
                 this.maxResolutionHeight != this.renderTarget.getHeight();
             this.renderTarget.resize(this.maxResolutionWidth, this.maxResolutionHeight);
+            if (!doUpdate)
+            settings.setFps("Paused");
             return doUpdate;
         }
 
