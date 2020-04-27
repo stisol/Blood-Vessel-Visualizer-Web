@@ -1,7 +1,5 @@
-
-
-import viewVert from "./viewsource.vert";
-import viewFrag from "./viewsource.frag";
+import viewVert from "./shaders/view.vert";
+import viewFrag from "./shaders/view.frag";
 
 import createSquareMesh from "./meshes/squareMesh";
 import { initShaderProgram, bindTexture } from "./shader";
@@ -39,7 +37,6 @@ async function Init(): Promise<void> {
         uniformLocations: {
         },
     };
-
     
     const renderLoop = (): void => {
         // render to the canvas

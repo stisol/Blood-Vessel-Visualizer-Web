@@ -6,8 +6,8 @@ import Camera from '../camera';
 import Mesh from '../mesh';
 import createCubeMesh from '../meshes/cubeMesh';
 
-import vert from "../source.vert";
-import frag from "../source.frag";
+import vert from "../shaders/source.vert";
+import frag from "../shaders/source.frag";
 import { initShaderProgram } from '../shader';
 import TransferFunctionController from '../transferFunction';
 import Light from '../light';
