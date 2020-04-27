@@ -14,14 +14,19 @@ export default class SliceView implements View {
     private gl: WebGL2RenderingContext;
     private renderTarget: RenderTarget;
     private programInfo: ProgramInfo;
-    // private transferFunction: TransferFunctionController;
+    private transferFunction: TransferFunctionController;
     // private transferFunctionTexture: WebGLTexture;
     private volumeData: LoadedTextureData;
     private mesh1: Mesh = SliceMeshes.mesh1();
     private mesh2: Mesh = SliceMeshes.mesh2();
     private mesh3: Mesh = SliceMeshes.mesh3();
     private projectionMatrix: mat4 = mat4.create();
-    private dataTexture: WebGLTexture;
+    private dataTexture1: WebGLTexture;
+    private dataTexture2: WebGLTexture;
+    private dataTexture3: WebGLTexture;
+    private texCache1: Float32Array = new Float32Array();
+    private texCache2: Float32Array = new Float32Array();
+    private texCache3: Float32Array = new Float32Array();
 
     public constructor(
         gl: WebGL2RenderingContext,
@@ -32,9 +37,11 @@ export default class SliceView implements View {
         this.renderTarget = renderTarget;
         this.volumeData = volumeData;
 
-        // this.transferFunction = transferFunction;
+        this.transferFunction = transferFunction;
         // this.transferFunctionTexture = gl.createTexture() as WebGLTexture;
-        this.dataTexture = gl.createTexture() as WebGLTexture;
+        this.dataTexture1 = gl.createTexture() as WebGLTexture;
+        this.dataTexture2 = gl.createTexture() as WebGLTexture;
+        this.dataTexture3 = gl.createTexture() as WebGLTexture;
 
         const shaderProgram = initShaderProgram(gl, vert, frag);
         this.programInfo = new ProgramInfo(gl, shaderProgram);
@@ -69,63 +76,88 @@ export default class SliceView implements View {
         //gl.uniform1i(this.programInfo.uniformLocations.transferFunction, 2);
 
         gl.uniformMatrix4fv(this.programInfo.uniformLocations.projectionMatrix, false, this.projectionMatrix);
-        gl.uniform1i(this.programInfo.uniformLocations.textureData, 3);
 
-        gl.activeTexture(gl.TEXTURE3);
-        gl.bindTexture(gl.TEXTURE_2D, this.dataTexture);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-
-        const tempAxis = Math.max(0.01, Math.min(0.99, settings.skinOpacity()));
-
-        // Upload slice data
-        {   // Depth
-            const z = Math.floor(this.volumeData.depth * tempAxis);
-            const sliceSize = this.volumeData.width * this.volumeData.height;
-            const data = this.volumeData.data.slice(z * sliceSize, (z + 1) * sliceSize);
-
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.R16F, this.volumeData.width,
-                this.volumeData.height, 0, gl.RED, gl.FLOAT, data);
-            this.mesh1.bindShader(gl, this.programInfo.program);
-            gl.drawElements(gl.TRIANGLES, this.mesh1.indiceCount(), gl.UNSIGNED_SHORT, 0);
+        if (settingsUpdated /*|| this.transferFunction.transferFunctionUpdated*/) {
+            const tempAxis = Math.max(0.01, Math.min(0.99, settings.skinOpacity()));
+            this.cacheSlices(tempAxis, tempAxis, tempAxis);
         }
-        {   // Height
-            const offset = Math.floor(this.volumeData.height * tempAxis);
+
+        gl.uniform1i(this.programInfo.uniformLocations.textureData, 3);
+        gl.bindTexture(gl.TEXTURE_2D, this.dataTexture1);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.R16F, this.volumeData.width,
+            this.volumeData.height, 0, gl.RED, gl.FLOAT, this.texCache1);
+        this.mesh1.bindShader(gl, this.programInfo.program);
+        gl.drawElements(gl.TRIANGLES, this.mesh1.indiceCount(), gl.UNSIGNED_SHORT, 0);
+
+        gl.bindTexture(gl.TEXTURE_2D, this.dataTexture2);
+        gl.uniform1i(this.programInfo.uniformLocations.textureData, 4);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.R16F, this.volumeData.width,
+            this.volumeData.depth, 0, gl.RED, gl.FLOAT, this.texCache2);
+        this.mesh2.bindShader(gl, this.programInfo.program);
+        gl.drawElements(gl.TRIANGLES, this.mesh2.indiceCount(), gl.UNSIGNED_SHORT, 0);
+
+        gl.bindTexture(gl.TEXTURE_2D, this.dataTexture3);
+        gl.uniform1i(this.programInfo.uniformLocations.textureData, 5);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.R16F, this.volumeData.height,
+            this.volumeData.depth, 0, gl.RED, gl.FLOAT, this.texCache3);
+        this.mesh3.bindShader(gl, this.programInfo.program);
+        gl.drawElements(gl.TRIANGLES, this.mesh3.indiceCount(), gl.UNSIGNED_SHORT, 0);
+    }
+
+    private cacheSlices(depth: number, height: number, width: number): void {
+        const gl = this.gl;
+        { // Depth
+            const z = Math.floor(this.volumeData.depth * depth);
+            const sliceSize = this.volumeData.width * this.volumeData.height;
+            this.texCache1 = this.volumeData.data.slice(z * sliceSize, (z + 1) * sliceSize);
+            gl.activeTexture(gl.TEXTURE3);
+            gl.bindTexture(gl.TEXTURE_2D, this.dataTexture1);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.R16F, this.volumeData.width,
+                this.volumeData.height, 0, gl.RED, gl.FLOAT, this.texCache1);
+        }
+        { // Height
+            const offset = Math.floor(this.volumeData.height * height);
             const hOff = offset * this.volumeData.width;
             const sliceSize = this.volumeData.depth * this.volumeData.width;
-            const data = new Float32Array(sliceSize);
+            this.texCache2 = new Float32Array(sliceSize);
             let i = 0;
             for (let d = 0; d < this.volumeData.depth; d++) {
                 const dOff = d * this.volumeData.height * this.volumeData.width;
                 for (let w = 0; w < this.volumeData.width; w++) {
                     const wOff = w;
-                    data[i++] = this.volumeData.data[hOff + dOff + wOff];
+                    this.texCache2[i++] = this.volumeData.data[hOff + dOff + wOff];
                 }
             }
-
+            gl.activeTexture(gl.TEXTURE4);
+            gl.bindTexture(gl.TEXTURE_2D, this.dataTexture2);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
             gl.texImage2D(gl.TEXTURE_2D, 0, gl.R16F, this.volumeData.width,
-                this.volumeData.depth, 0, gl.RED, gl.FLOAT, data);
-            this.mesh2.bindShader(gl, this.programInfo.program);
-            gl.drawElements(gl.TRIANGLES, this.mesh2.indiceCount(), gl.UNSIGNED_SHORT, 0);
+                this.volumeData.depth, 0, gl.RED, gl.FLOAT, this.texCache2);
         }
-        {   // Width
-            const wOff = Math.floor(this.volumeData.width * tempAxis);
+        { // Width
+            const wOff = Math.floor(this.volumeData.width * width);
             const sliceSize = this.volumeData.depth * this.volumeData.width;
-            const data = new Float32Array(sliceSize);
+            this.texCache3 = new Float32Array(sliceSize);
             let i = 0;
             for (let d = 0; d < this.volumeData.depth; d++) {
                 const dOff = d * this.volumeData.height * this.volumeData.width;
                 for (let h = 0; h < this.volumeData.height; h++) {
                     const hOff = h * this.volumeData.width;
-                    data[i++] = this.volumeData.data[dOff + hOff + wOff];
+                    this.texCache3[i++] = this.volumeData.data[dOff + hOff + wOff];
                 }
             }
-
+            gl.activeTexture(gl.TEXTURE5);
+            gl.bindTexture(gl.TEXTURE_2D, this.dataTexture3);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
             gl.texImage2D(gl.TEXTURE_2D, 0, gl.R16F, this.volumeData.height,
-                this.volumeData.depth, 0, gl.RED, gl.FLOAT, data);
-            this.mesh3.bindShader(gl, this.programInfo.program);
-            gl.drawElements(gl.TRIANGLES, this.mesh3.indiceCount(), gl.UNSIGNED_SHORT, 0);
+                this.volumeData.depth, 0, gl.RED, gl.FLOAT, this.texCache3);
         }
     }
 
