@@ -1,4 +1,5 @@
 import { vec3 } from "gl-matrix";
+import * as $ from "jquery";
 
 export default class Camera {
     private theta = 0.0;
@@ -14,12 +15,16 @@ export default class Camera {
     public constructor(target: vec3) {
         this.target = target;
 
-        const canvas = document.getElementById("theCanvas") as HTMLCanvasElement;
-        canvas.onmousedown = this.setMouseDown.bind(this, true);
-        canvas.onmouseup = this.setMouseDown.bind(this, false);
-        canvas.onmouseleave = this.setMouseDown.bind(this, false);
-        canvas.onmousemove = this.onMouseMove.bind(this);
-        canvas.onwheel = this.onMouseScroll.bind(this);
+        // JQuery is good at automatically creating event handler queues.
+        $("#theCanvas")
+            .mousedown(this.setMouseDown.bind(this, true))
+            .mouseup(this.setMouseDown.bind(this, false))
+            .mouseleave(this.setMouseDown.bind(this, false))
+            .mousemove(this.onMouseMove.bind(this));
+        
+        // But JQuery is also really bad at scroll wheels.
+        (document.getElementById("theCanvas") as HTMLCanvasElement)
+            .onwheel = this.onMouseScroll.bind(this);
     }
 
     public isUpdated(): boolean {
@@ -32,7 +37,7 @@ export default class Camera {
         this.mouseDown = value;
     }
 
-    private onMouseMove(ev: MouseEvent): void {
+    private onMouseMove(ev: JQuery.MouseMoveEvent): void {
         if (!this.mouseDown) {
             this.lastMousePos[0] = ev.clientX;
             this.lastMousePos[1] = ev.clientY;
