@@ -1,7 +1,7 @@
 import View from '../view';
 import RenderTarget from '../renderTarget';
 import Settings from '../settings';
-import { mat4 } from 'gl-matrix';
+import { mat4, vec3 } from 'gl-matrix';
 import Camera from '../camera';
 import Mesh from '../mesh';
 import vert from "../shaders/slice.vert";
@@ -38,10 +38,10 @@ export default class SliceView implements View {
 
         // this.transferFunction = transferFunction;
         // this.transferFunctionTexture = gl.createTexture() as WebGLTexture;
-        
-        this.slices.push(new Slice(gl, 0.0, 0.5, 0.5, 1.0));
-        this.slices.push(new Slice(gl, 0.5, 1.0, 0.5, 1.0));
-        this.slices.push(new Slice(gl, 0.5, 1.0, 0.0, 0.5));
+
+        this.slices.push(new Slice(gl, [255, 0, 0], 0.0, 0.5, 0.5, 1.0));
+        this.slices.push(new Slice(gl, [0, 255, 0], 0.5, 1.0, 0.5, 1.0));
+        this.slices.push(new Slice(gl, [0, 0, 255], 0.5, 1.0, 0.0, 0.5));
 
         const shaderProgram = initShaderProgram(gl, vert, frag);
         this.programInfo = new ProgramInfo(gl, shaderProgram);
@@ -85,7 +85,7 @@ export default class SliceView implements View {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     public render(aspect: number, _camera: Camera, settings: Settings, settingsUpdated: boolean): void {
         const gl = this.gl;
-        
+
         gl.enable(gl.DEPTH_TEST);
         gl.depthFunc(gl.LEQUAL);
         gl.viewport(0, 0, this.renderTarget.getWidth(), this.renderTarget.getHeight());
@@ -118,28 +118,34 @@ export default class SliceView implements View {
 
         {
             const slice = this.slices[0];
+            const c = slice.color;
             gl.uniform1i(this.programInfo.uniformLocations.textureData, 3);
+            gl.uniform3f(this.programInfo.uniformLocations.borderColor, c[0], c[1], c[2])
             gl.bindTexture(gl.TEXTURE_2D, slice.getTexture());
             gl.texImage2D(gl.TEXTURE_2D, 0, gl.R16F, this.volumeData.width,
                 this.volumeData.height, 0, gl.RED, gl.FLOAT, this.texCache1);
-                slice.getMesh().bindShader(gl, this.programInfo.program);
+            slice.getMesh().bindShader(gl, this.programInfo.program);
             gl.drawElements(gl.TRIANGLES, slice.getMesh().indiceCount(), gl.UNSIGNED_SHORT, 0);
         }
 
         {
             const slice = this.slices[1];
+            const c = slice.color;
             gl.bindTexture(gl.TEXTURE_2D, slice.getTexture());
             gl.uniform1i(this.programInfo.uniformLocations.textureData, 4);
+            gl.uniform3f(this.programInfo.uniformLocations.borderColor, c[0], c[1], c[2])
             gl.texImage2D(gl.TEXTURE_2D, 0, gl.R16F, this.volumeData.width,
                 this.volumeData.depth, 0, gl.RED, gl.FLOAT, this.texCache2);
             slice.getMesh().bindShader(gl, this.programInfo.program);
             gl.drawElements(gl.TRIANGLES, slice.getMesh().indiceCount(), gl.UNSIGNED_SHORT, 0);
         }
-        
+
         {
             const slice = this.slices[2];
+            const c = slice.color;
             gl.bindTexture(gl.TEXTURE_2D, slice.getTexture());
             gl.uniform1i(this.programInfo.uniformLocations.textureData, 5);
+            gl.uniform3f(this.programInfo.uniformLocations.borderColor, c[0], c[1], c[2])
             gl.texImage2D(gl.TEXTURE_2D, 0, gl.R16F, this.volumeData.height,
                 this.volumeData.depth, 0, gl.RED, gl.FLOAT, this.texCache3);
             slice.getMesh().bindShader(gl, this.programInfo.program);
@@ -216,13 +222,15 @@ class Slice {
     private y2: number;
     private mesh: Mesh;
     private texture: WebGLTexture;
+    public color: vec3;
 
-    constructor(gl: WebGL2RenderingContext, x1: number, x2: number, y1: number, y2: number) {
+    constructor(gl: WebGL2RenderingContext, color: vec3, x1: number, x2: number, y1: number, y2: number) {
         this.x1 = x1;
         this.x2 = x2;
         this.y1 = y1;
         this.y2 = y2;
         this.texture = gl.createTexture() as WebGLTexture;
+        this.color = color;
         this.mesh = Slice.mesh(x1, x2, y1, y2);
     }
 
@@ -257,7 +265,7 @@ class Slice {
         ];
         mesh.setPositions(positions, faces);
         mesh.setTexturePositions(texCoords);
-        return mesh;        
+        return mesh;
     }
 }
 
@@ -275,6 +283,7 @@ class UniformLocations {
     projectionMatrix: WebGLUniformLocation;
     //transferFunction: WebGLUniformLocation;
     textureData: WebGLUniformLocation;
+    borderColor: WebGLUniformLocation;
 
     constructor(gl: WebGL2RenderingContext, shaderProgram: WebGLShader) {
         this.projectionMatrix =
@@ -283,5 +292,7 @@ class UniformLocations {
         //    gl.getUniformLocation(shaderProgram, "uTransferFunction") as WebGLUniformLocation;
         this.textureData =
             gl.getUniformLocation(shaderProgram, "textureData") as WebGLUniformLocation;
+        this.borderColor =
+            gl.getUniformLocation(shaderProgram, "borderColor") as WebGLUniformLocation;
     }
 }
