@@ -92,9 +92,16 @@ export default class MainView implements View {
 
             const eye = camera.position();
             mat4.lookAt(this.modelViewMatrix, eye, this.modelCenter, [0.0, 1.0, 0.0]);
+
+            
+            const lightTransform = settings.lightTransform();
+            const lightPos = vec3.fromValues(0.0, 0.0, 1.0);
+            vec3.transformMat4(lightPos, lightPos, lightTransform);
+            vec3.add(lightPos, lightPos, vec3.fromValues(0.5, 0.5, 0.5));
             
             gl.useProgram(this.programInfo.program);
             gl.uniform3fv(this.programInfo.uniformLocations.eyePos, eye);
+            gl.uniform3fv(this.programInfo.uniformLocations.lightPosition, lightPos);
 
             gl.uniform1i(this.programInfo.uniformLocations.colorAccumulationType, settings.accumulationMethod());
             const matrix = mat4.create();
@@ -136,10 +143,6 @@ export default class MainView implements View {
             const faceMatrix = mat4.create();
             const lightMatrix = mat4.create();
 
-            const lightTransform = settings.lightTransform();
-            const lightPos = vec3.fromValues(0.0, 0.0, 1.0);
-            vec3.transformMat4(lightPos, lightPos, lightTransform);
-            vec3.add(lightPos, lightPos, vec3.fromValues(0.5, 0.5, 0.5));
 
             mat4.targetTo(faceMatrix, lightPos, eye, [0.0, 1.0, 0.0]);
             mat4.multiply(lightMatrix, faceMatrix, lightMatrix);
@@ -224,6 +227,7 @@ class UniformLocations {
     textureData: WebGLUniformLocation;
     normalData: WebGLUniformLocation;
     colorAccumulationType: WebGLUniformLocation;
+    lightPosition: WebGLUniformLocation;
 
     constructor(gl: WebGL2RenderingContext, shaderProgram: WebGLShader) {        
         this.projectionMatrix = 
@@ -242,5 +246,7 @@ class UniformLocations {
             gl.getUniformLocation(shaderProgram, "normalData") as WebGLUniformLocation;
         this.colorAccumulationType = 
             gl.getUniformLocation(shaderProgram, "colorAccumulationType") as WebGLUniformLocation;
+        this.lightPosition = 
+            gl.getUniformLocation(shaderProgram, "lightPos") as WebGLUniformLocation;
     }
 }

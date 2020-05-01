@@ -206,7 +206,7 @@ class LightSetting extends Setting {
         this.lightTransform = mat4.create();
 
         
-        const camera = new Camera([0.5, 0.5, 0.5], this.elem);
+        const camera = new Camera([0.0, 0.0, 0.0], this.elem, -4.0);
 
         const gl = this.elem.getContext("webgl2");
         if (gl === null) {
@@ -248,11 +248,7 @@ class LightSetting extends Setting {
 
             const lightPosition = vec3.fromValues(0.0, 0, 1.0);
             vec3.transformMat4(lightPosition, lightPosition, lTransform);
-
-            const modelViewMatrix = mat4.create();
-            const eye = camera.position();
-            mat4.lookAt(modelViewMatrix, eye, [0.0, 0.0, 0.0], [0.0, 1.0, 0.0]);
-
+            //console.log("LIGHT:", lightPosition);
             gl.clearColor(0.0, 0.0, 0.0, 1.0);
             gl.clearDepth(1.0);
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
@@ -268,8 +264,7 @@ class LightSetting extends Setting {
             gl.clearColor(0, 0, 0, 1);   // clear to white
 
             const projectionMatrix = mat4.create();
-            mat4.multiply(projectionMatrix, model, modelViewMatrix);
-            mat4.mul(projectionMatrix, perspective, projectionMatrix);
+            mat4.mul(projectionMatrix, perspective, model);
     
             gl.uniformMatrix4fv(viewInfo.uniformLocations.projectionMatrix, false, projectionMatrix);
     
@@ -299,6 +294,15 @@ class LightSetting extends Setting {
             const y = (dy - rect.top) / 270.0 * 2.0 - 1.0;
             const direction = vec3.fromValues(-x, y, 0.0);
             const projectionMatrix = mat4.create();
+
+            const modelViewMatrix = mat4.create();
+            const eye = camera.position();
+            mat4.lookAt(modelViewMatrix, [0.0, 0.0, 0.0], eye, [0.0, 1.0, 0.0]);
+            console.log(eye);
+            
+            const inverted = mat4.create();
+            mat4.invert(inverted, modelViewMatrix);
+
             mat4.mul(projectionMatrix, perspective, model);
             vec3.transformMat4(direction, direction, projectionMatrix);
             vec3.normalize(direction, direction);
@@ -314,16 +318,34 @@ class LightSetting extends Setting {
             const thirdAxis = vec3.create();
             vec3.cross(thirdAxis, primaryAxis, secondAxis);
             vec3.cross(secondAxis, primaryAxis, thirdAxis);
-            return mat4.fromValues(thirdAxis[0], thirdAxis[1], thirdAxis[2], 0.0, -secondAxis[0], -secondAxis[1], -secondAxis[2], 0.0, primaryAxis[0], primaryAxis[1], primaryAxis[2], 0.0, 0.0, 0.0, 0.0, 1.0)
 
+            const rotation = mat4.fromValues(thirdAxis[0], thirdAxis[1], thirdAxis[2], 0.0, -secondAxis[0], -secondAxis[1], -secondAxis[2], 0.0, primaryAxis[0], primaryAxis[1], primaryAxis[2], 0.0, 0.0, 0.0, 0.0, 1.0)
+            
+            mat4.mul(rotation, inverted, rotation);
+
+            const result = mat4.create();
+            mat4.mul(result, modelViewMatrix, rotation);
+            return modelViewMatrix;
         }
+
+        let doClick = false;
+
+        this.elem.addEventListener('mousedown', (event: MouseEvent) => {
+            doClick = true;
+        });
 
         this.elem.addEventListener('click', (event: MouseEvent) => {
 
-            const rotation = createRotationMatrix(event.clientX, event.clientY);
-            this.lightTransform = rotation;
-            draw(rotation);
-            this.updated = true;
+            //if(doClick) {
+                const rotation = createRotationMatrix(event.clientX, event.clientY);
+                const modelViewMatrix = mat4.create();
+                const eye = camera.position();
+                mat4.lookAt(modelViewMatrix, [0.0, 0.0, 0.0], eye, [0.0, 1.0, 0.0]);
+                mat4.mul(this.lightTransform, modelViewMatrix, rotation);
+                this.lightTransform = rotation;
+                draw(rotation);
+                this.updated = true;
+            //}
 
         });
 
@@ -332,10 +354,16 @@ class LightSetting extends Setting {
             quat.fromMat3(qRotation, rotation);
             mat4.fromRotationTranslation(lineTransform, qRotation, [0.0, 0.0, 0.0]);*/
             const rotation = createRotationMatrix(event.clientX, event.clientY);
+            this.lightTransform = rotation;
+            this.updated = true;
             draw(rotation);
+            doClick = false;
         });
 
         this.elem.addEventListener('mouseleave', () => {
+
+
+
             draw(this.lightTransform);
         });
         // TODO: Draw light spec

@@ -15,15 +15,16 @@ uniform sampler3D normalData;
 
 uniform int colorAccumulationType;
 
+uniform vec3 lightPos;
 
 const vec3 clipPlanePos = vec3(0.5, 0.0, 0.0);
 const vec3 clipPlaneNormal = vec3(1.0, 0.0, 0.0);
 
-const vec3 lightPos = vec3(4.0, 2.0, 0.5);
+//const vec3 lightPos = vec3(4.0, 2.0, 0.5);
 
 // TODO: Make these uniform
 // value between (0.0, 1.0] that defines the step resoultion based on size
-const float resolution = 0.05;
+const float resolution = 0.1;
 // Volume dimension
 const vec3 volume_dim = vec3(244, 124, 257);
 
@@ -95,6 +96,7 @@ vec3 raymarch(in vec3 ray, in vec3 ray_dir, in float start, in float end, in flo
                 color.rgb += (1.0 - color.a) * (val_color.a * val_color.rgb);
                 color.a += (1.0 - color.a) * val_color.a;
                 color_hit = ray;
+
                 // Abort when integrated opacity is close to opaque
                 if(color.a >= 0.95) {
                     break;

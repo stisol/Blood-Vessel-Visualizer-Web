@@ -11,7 +11,7 @@ export default class Camera {
 
     private updated = true;
 
-    public constructor(target: vec3, canvas: HTMLCanvasElement) {
+    public constructor(target: vec3, canvas: HTMLCanvasElement, radius = 4.0) {
         this.target = target;
 
         canvas.onmousedown = this.setMouseDown.bind(this, true);
@@ -19,6 +19,7 @@ export default class Camera {
         canvas.onmouseleave = this.setMouseDown.bind(this, false);
         canvas.onmousemove = this.onMouseMove.bind(this);
         canvas.onwheel = this.onMouseScroll.bind(this);
+        this.radius = radius;
     }
 
     public isUpdated(): boolean {
@@ -67,6 +68,14 @@ export default class Camera {
         const x = this.target[0] + r * Math.sin(phi) * Math.sin(theta);
         const y = this.target[1] + r * Math.cos(phi);
         const z = this.target[2] + r * Math.sin(phi) * Math.cos(theta);
+        return [x, y, z];
+    }
+    
+    public invertedPosition(): vec3 {
+        const r = this.radius, phi = this.phi, theta = this.theta;
+        const z = this.target[0] + r * Math.sin(phi) * Math.sin(theta);
+        const y = (-this.target[1] + r * Math.cos(phi));
+        const x = this.target[2] + r * Math.sin(phi) * Math.cos(theta);
         return [x, y, z];
     }
 }
