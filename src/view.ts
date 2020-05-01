@@ -3,8 +3,8 @@ import Camera from './camera';
 import Settings from './settings';
 
 interface View {
-    render(aspect: number, camera: Camera, settings: Settings): void;
-    getRenderTexture(): WebGLTexture;
+    render(aspect: number, camera: Camera, settings: Settings, settingsUpdated: boolean): void;
+    getRenderTarget(): RenderTarget;
 }
 
 export default View;

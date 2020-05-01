@@ -2,8 +2,8 @@ import Mesh from "./mesh";
 import createSquareMesh from "./meshes/squareMesh";
 
 import Sun from './resources/sun.png';
-import viewVert from "./lightsource.vert";
-import viewFrag from "./lightsource.frag";
+import viewVert from "./shaders/lightsource.vert";
+import viewFrag from "./shaders/lightsource.frag";
 import { initShaderProgram } from "./shader";
 import { mat4, vec3 } from "gl-matrix";
 

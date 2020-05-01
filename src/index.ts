@@ -1,7 +1,5 @@
-
-
-import viewVert from "./viewsource.vert";
-import viewFrag from "./viewsource.frag";
+import viewVert from "./shaders/view.vert";
+import viewFrag from "./shaders/view.frag";
 
 import createSquareMesh from "./meshes/squareMesh";
 import { initShaderProgram, bindTexture } from "./shader";
@@ -9,6 +7,7 @@ import TransferFunctionController from "./transferFunction";
 
 import View from './view';
 import MainView from './Views/mainView';
+import SliceView from './Views/sliceView';
 import Camera from "./camera";
 import Settings from "./settings";
 
@@ -24,12 +23,14 @@ async function Init(): Promise<void> {
         return;
     }
 
-    const volumeData = await bindTexture("./data/hand.dat", gl);
+    const loadedData = await bindTexture("./data/hand.dat", gl);
+    const volumeData = loadedData.data;
 
     const settings = new Settings();
     const sidebar = document.getElementById("sidebar") as HTMLDivElement;
     const transferFunction = new TransferFunctionController(volumeData, sidebar, settings);
-    const renderView: View = new MainView(gl, transferFunction);
+    const renderView: View = new MainView(gl, transferFunction,);
+    const renderSlice: View = new SliceView(gl, transferFunction, renderView.getRenderTarget(), loadedData);
     const camera = new Camera([0.5, 0.5, 0.5], document.getElementById("theCanvas") as HTMLCanvasElement);
     const view = createSquareMesh(-1.0, 1.0);
 
@@ -39,7 +40,6 @@ async function Init(): Promise<void> {
         uniformLocations: {
         },
     };
-
     
     const renderLoop = (): void => {
         // render to the canvas
@@ -48,7 +48,9 @@ async function Init(): Promise<void> {
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
-        renderView.render(canvas.clientWidth / canvas.clientHeight, camera, settings);
+        const settingsUpdated = settings.isUpdated();
+        renderView.render(canvas.clientWidth / canvas.clientHeight, camera, settings, settingsUpdated);
+        renderSlice.render(canvas.clientWidth / canvas.clientHeight, camera, settings, settingsUpdated);
 
         //test = false;
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -62,7 +64,7 @@ async function Init(): Promise<void> {
         gl.useProgram(viewInfo.program);
         // render the cube with the texture we just rendered to
         gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, renderView.getRenderTexture());
+        gl.bindTexture(gl.TEXTURE_2D, renderView.getRenderTarget().getTexture());
         // Tell WebGL how to convert from clip space to pixels
         gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
         gl.clearColor(0, 0, 0, 1);   // clear to white

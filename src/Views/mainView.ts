@@ -6,8 +6,8 @@ import Camera from '../camera';
 import Mesh from '../mesh';
 import createCubeMesh from '../meshes/cubeMesh';
 
-import vert from "../source.vert";
-import frag from "../source.frag";
+import vert from "../shaders/source.vert";
+import frag from "../shaders/source.frag";
 import { initShaderProgram } from '../shader';
 import TransferFunctionController from '../transferFunction';
 import Light from '../light';
@@ -65,9 +65,9 @@ export default class MainView implements View {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-empty-function
-    render(aspect: number, camera: Camera, settings: Settings): void {
+    render(aspect: number, camera: Camera, settings: Settings, settingsUpdated: boolean): void {
         const gl = this.gl;
-        if(this.updateFps(camera, settings) || this.transferFunction.transferFunctionUpdated) {
+        if(this.updateFps(camera, settings, settingsUpdated) || this.transferFunction.transferFunctionUpdated) {
 
             this.renderTarget.bindFramebuffer();
 
@@ -153,13 +153,12 @@ export default class MainView implements View {
         }
     }
 
-    getRenderTexture(): WebGLTexture {
-        return this.renderTarget.getTexture();
+    getRenderTarget(): RenderTarget {
+        return this.renderTarget;
     }
 
 
-    private updateFps(camera: Camera, settings: Settings): boolean {
-
+    private updateFps(camera: Camera, settings: Settings, settingsUpdated: boolean): boolean {
         const optimalFps = 30;
 
         const newTime = window.performance.now();
@@ -177,11 +176,13 @@ export default class MainView implements View {
         const avgFps = this.fpsLog.reduce((a, b) => a+b, 0) / 10.0;
         settings.setFps(Math.round(avgFps).toString());
         
-        const viewUpdated = settings.isUpdated() || camera.isUpdated();
-        if (!viewUpdated && this.lastSettingsUpdate + 250 < Date.now()) {
+        const viewUpdated = settingsUpdated || camera.isUpdated();
+        if (!viewUpdated && this.lastSettingsUpdate + 500 < Date.now()) {
             const doUpdate = this.maxResolutionWidth != this.renderTarget.getWidth() ||
                 this.maxResolutionHeight != this.renderTarget.getHeight();
             this.renderTarget.resize(this.maxResolutionWidth, this.maxResolutionHeight);
+            if (!doUpdate)
+            settings.setFps("Paused");
             return doUpdate;
         }
 

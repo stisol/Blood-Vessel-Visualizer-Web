@@ -408,7 +408,7 @@ export default class Settings {
     }
 
     public skinOpacity(): number {
-        return Math.pow(this.settings["skinOpacity"].value(), 4);
+        return this.settings["skinOpacity"].value();
     }
 
     public isOrtographicCamera(): boolean {

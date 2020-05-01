@@ -60,7 +60,7 @@ function loadShader(
     return shader;
 }
 
-export async function bindTexture(url: string, gl: WebGL2RenderingContext): Promise<Float32Array> {
+export async function bindTexture(url: string, gl: WebGL2RenderingContext): Promise<LoadedTextureData> {
     const buffer = await makeRequest("GET", url, "arraybuffer") as ArrayBuffer;
 
     if (!buffer) throw "Could not load the texture data.";
@@ -157,5 +157,19 @@ export async function bindTexture(url: string, gl: WebGL2RenderingContext): Prom
         normalData
     );
 
-    return volumeData;
+    return new LoadedTextureData(volumeData, height, width, depth);
+}
+
+export class LoadedTextureData {
+    public data: Float32Array;
+    public height: number;
+    public width: number;
+    public depth: number;
+
+    constructor(data: Float32Array, height: number, width: number, depth: number) {
+        this.data = data;
+        this.height = height;
+        this.width = width;
+        this.depth = depth;
+    }
 }
