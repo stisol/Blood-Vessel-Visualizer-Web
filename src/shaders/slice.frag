@@ -5,6 +5,7 @@ precision highp int;
 precision highp sampler3D;
 
 in vec2 texCoord;
+in float zDepth;
 out lowp vec4 color;
 
 uniform vec3 borderColor;
@@ -18,5 +19,5 @@ void main() {
         float v = texture(textureData, texCoord).r;
         color = vec4(v, v, v, 1.0);
     }
-	gl_FragDepth = 0.0;
+	gl_FragDepth = zDepth / 40.0;
 }

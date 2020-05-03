@@ -65,100 +65,93 @@ export default class MainView implements View {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-empty-function
-    render(aspect: number, camera: Camera, settings: Settings, settingsUpdated: boolean): void {
+    render(aspect: number, camera: Camera, settings: Settings): void {
         const gl = this.gl;
-        if(this.updateFps(camera, settings, settingsUpdated) || this.transferFunction.transferFunctionUpdated) {
 
-            this.renderTarget.bindFramebuffer();
+        this.renderTarget.bindFramebuffer();
 
-            gl.clearColor(0.0, 0.0, 0.0, 1.0);
-            gl.clearDepth(1.0);
-            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-            gl.enable(gl.CULL_FACE);
-            gl.cullFace(gl.FRONT);
-            gl.enable(gl.DEPTH_TEST);
-            gl.depthFunc(gl.LEQUAL);
-            gl.viewport(0, 0, this.renderTarget.getWidth(), this.renderTarget.getHeight());
+        gl.enable(gl.CULL_FACE);
+        gl.cullFace(gl.FRONT);
+        gl.enable(gl.DEPTH_TEST);
+        gl.depthFunc(gl.LEQUAL);
+        gl.viewport(0, 0, this.renderTarget.getWidth(), this.renderTarget.getHeight());
 
-            const zNear = 0.1;
-            const zFar = 40.0;
-            if (settings.isOrtographicCamera()) {
-                mat4.ortho(this.projectionMatrix, -1.0, 1.0, -1.0, 1.0, zNear, zFar);
-            } else {
-                const fieldOfView = 45 * Math.PI / 180;   // in radians
-                mat4.perspective(this.projectionMatrix, fieldOfView, 
-                    aspect, zNear, zFar);
-            }
-
-            const eye = camera.position();
-            mat4.lookAt(this.modelViewMatrix, eye, this.modelCenter, [0.0, 1.0, 0.0]);
-
-            
-            const lightTransform = settings.lightTransform();
-            const lightPos = vec3.fromValues(0.0, 0.0, 1.0);
-            vec3.transformMat4(lightPos, lightPos, lightTransform);
-            vec3.add(lightPos, lightPos, vec3.fromValues(0.5, 0.5, 0.5));
-            
-            gl.useProgram(this.programInfo.program);
-            gl.uniform3fv(this.programInfo.uniformLocations.eyePos, eye);
-            gl.uniform3fv(this.programInfo.uniformLocations.lightPosition, lightPos);
-
-            gl.uniform1i(this.programInfo.uniformLocations.colorAccumulationType, settings.accumulationMethod());
-            const matrix = mat4.create();
-            mat4.multiply(matrix, this.projectionMatrix, this.modelViewMatrix);
-
-            gl.uniformMatrix4fv(
-                this.programInfo.uniformLocations.projectionMatrix,
-                false,
-                matrix);
-
-                
-            // Check for transfer function update
-            const tf = this.transferFunction;
-            if (tf.transferFunctionUpdated) {
-                const tex = tf.getTransferFunctionTexture();
-                gl.activeTexture(gl.TEXTURE2);
-                gl.bindTexture(gl.TEXTURE_2D, this.transferFunctionTexture);
-                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-                gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 256, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, tex);
-            }
-            else {
-                gl.activeTexture(gl.TEXTURE2);
-                gl.bindTexture(gl.TEXTURE_2D, this.transferFunctionTexture);
-            }
-            gl.uniform1i(this.programInfo.uniformLocations.transferFunction, 2);
-
-            gl.uniform1i(this.programInfo.uniformLocations.textureData, 0);
-            gl.uniform1i(this.programInfo.uniformLocations.normalData, 1);
-            const depth = settings.skinOpacity();
-            gl.uniform1f(this.programInfo.uniformLocations.depth, depth);
-            {
-                this.mesh.bindShader(gl, this.programInfo.program);
-                gl.drawElements(gl.TRIANGLES, this.mesh.indiceCount(), gl.UNSIGNED_SHORT, 0);
-            }
-            gl.disable(gl.CULL_FACE);
-
-            const faceMatrix = mat4.create();
-            const lightMatrix = mat4.create();
-
-
-            mat4.targetTo(faceMatrix, lightPos, eye, [0.0, 1.0, 0.0]);
-            mat4.multiply(lightMatrix, faceMatrix, lightMatrix);
-            mat4.multiply(lightMatrix, this.modelViewMatrix, lightMatrix);
-            mat4.multiply(lightMatrix, this.projectionMatrix, lightMatrix);
-
-            this.lights.draw(lightMatrix, vec3.create());
+        const zNear = 0.1;
+        const zFar = 40.0;
+        if (settings.isOrtographicCamera()) {
+            mat4.ortho(this.projectionMatrix, -1.0, 1.0, -1.0, 1.0, zNear, zFar);
+        } else {
+            const fieldOfView = 45 * Math.PI / 180;   // in radians
+            mat4.perspective(this.projectionMatrix, fieldOfView, 
+                aspect, zNear, zFar);
         }
+
+        const eye = camera.position();
+        mat4.lookAt(this.modelViewMatrix, eye, this.modelCenter, [0.0, 1.0, 0.0]);
+
+        
+        const lightTransform = settings.lightTransform();
+        const lightPos = vec3.fromValues(0.0, 0.0, 1.0);
+        vec3.transformMat4(lightPos, lightPos, lightTransform);
+        vec3.add(lightPos, lightPos, vec3.fromValues(0.5, 0.5, 0.5));
+        
+        gl.useProgram(this.programInfo.program);
+        gl.uniform3fv(this.programInfo.uniformLocations.eyePos, eye);
+        gl.uniform3fv(this.programInfo.uniformLocations.lightPosition, lightPos);
+
+        gl.uniform1i(this.programInfo.uniformLocations.colorAccumulationType, settings.accumulationMethod());
+        const matrix = mat4.create();
+        mat4.multiply(matrix, this.projectionMatrix, this.modelViewMatrix);
+
+        gl.uniformMatrix4fv(
+            this.programInfo.uniformLocations.projectionMatrix,
+            false,
+            matrix);
+
+            
+        // Check for transfer function update
+        const tf = this.transferFunction;
+        if (tf.transferFunctionUpdated) {
+            const tex = tf.getTransferFunctionTexture();
+            gl.activeTexture(gl.TEXTURE2);
+            gl.bindTexture(gl.TEXTURE_2D, this.transferFunctionTexture);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 256, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, tex);
+        }
+        else {
+            gl.activeTexture(gl.TEXTURE2);
+            gl.bindTexture(gl.TEXTURE_2D, this.transferFunctionTexture);
+        }
+        gl.uniform1i(this.programInfo.uniformLocations.transferFunction, 2);
+
+        gl.uniform1i(this.programInfo.uniformLocations.textureData, 0);
+        gl.uniform1i(this.programInfo.uniformLocations.normalData, 1);
+        const depth = settings.skinOpacity();
+        gl.uniform1f(this.programInfo.uniformLocations.depth, depth);
+        {
+            this.mesh.bindShader(gl, this.programInfo.program);
+            gl.drawElements(gl.TRIANGLES, this.mesh.indiceCount(), gl.UNSIGNED_SHORT, 0);
+        }
+        gl.disable(gl.CULL_FACE);
+
+        const faceMatrix = mat4.create();
+        const lightMatrix = mat4.create();
+
+        mat4.targetTo(faceMatrix, lightPos, eye, [0.0, 1.0, 0.0]);
+        mat4.multiply(lightMatrix, faceMatrix, lightMatrix);
+        mat4.multiply(lightMatrix, this.modelViewMatrix, lightMatrix);
+        mat4.multiply(lightMatrix, this.projectionMatrix, lightMatrix);
+
+        this.lights.draw(lightMatrix, vec3.create());        
     }
 
     getRenderTarget(): RenderTarget {
         return this.renderTarget;
     }
 
-
-    private updateFps(camera: Camera, settings: Settings, settingsUpdated: boolean): boolean {
+    public updateFps(camera: Camera, settings: Settings, settingsUpdated: boolean): boolean {
         const optimalFps = 30;
 
         const newTime = window.performance.now();
