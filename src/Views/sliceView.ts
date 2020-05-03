@@ -1,7 +1,7 @@
 import View from '../view';
 import RenderTarget from '../renderTarget';
 import Settings from '../settings';
-import { mat4, vec3 } from 'gl-matrix';
+import { mat4, vec3, vec4 } from 'gl-matrix';
 import Camera from '../camera';
 import Mesh from '../mesh';
 import vert from "../shaders/slice.vert";
@@ -25,6 +25,7 @@ export default class SliceView implements View {
     private controlDepth = 0.5;
     private modelCenter: [number, number, number] = [0.5, 0.5, 0.5];
     private mesh3d: Mesh;
+    private aspectRatioCache = 1;
     public textureUpdated = false;
 
     public constructor(
@@ -74,7 +75,7 @@ export default class SliceView implements View {
         
         for (let i = 0; i < this.slices.length; i++) {
             const slice = this.slices[i];
-            const hit = slice.hit(glx, gly);
+            const hit = slice.hit(glx, gly, this.aspectRatioCache);
             if (hit === null) continue;
 
             const hitx = hit[0], hity = hit[1];
@@ -103,6 +104,7 @@ export default class SliceView implements View {
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     public render(aspect: number, camera: Camera, settings: Settings): void {
         const gl = this.gl;
+        this.aspectRatioCache = aspect;
         
         gl.enable(gl.DEPTH_TEST);
         gl.depthFunc(gl.LEQUAL);
@@ -112,6 +114,7 @@ export default class SliceView implements View {
         mat4.ortho(this.projectionMatrix, -1.0 * aspect, 1.0, -1.0 / aspect, 1.0, 0.0, 50.0);
 
         for (let i = 0; i < this.slices.length; i++) {
+            // 2D slice
             const slice = this.slices[i];
             const c = slice.color;
             gl.uniformMatrix4fv(this.programInfo.uniformLocations.projectionMatrix, false, this.projectionMatrix);
@@ -122,8 +125,7 @@ export default class SliceView implements View {
             slice.getMesh().bindShader(gl, this.programInfo.program);
             gl.drawElements(gl.TRIANGLES, slice.getMesh().indiceCount(), gl.UNSIGNED_SHORT, 0);
 
-
-            // 3D rep
+            // 3D planar representation
             const perspective = mat4.create(), lookat = mat4.create(), matrix = mat4.create();
             const fieldOfView = 45 * Math.PI / 180, zNear = 0.1, zFar = 40.0;
             mat4.perspective(perspective, fieldOfView, aspect, zNear, zFar);
@@ -245,12 +247,21 @@ class Slice {
         this.mesh = Slice.mesh(x1, x2, y1, y2);
     }
 
-    public hit(x: number, y: number): [number, number] | null {
-        const hit = this.x1 < x && x < this.x2 && this.y1 < y && y < this.y2;
+    public hit(x: number, y: number, aspect: number): [number, number] | null {
+        const proj = mat4.create();
+        mat4.ortho(proj, -1.0 * aspect, 1.0, -1.0 / aspect, 1.0, 0.0, 50.0);
+
+        const v1 = vec4.create(), v2 = vec4.create();
+        vec4.transformMat4(v1, [this.x1, this.y1, 1, 1], proj);
+        vec4.transformMat4(v2, [this.x2, this.y2, 1, 1], proj);
+
+        const x1 = v1[0], y1 = v1[1], x2 = v2[0], y2 = v2[1];
+
+        const hit = x1 < x && x < x2 && y1 < y && y < y2;
         if (!hit) return null;
         return [
-            Math.abs(x - this.x1) / Math.abs(this.x2 - this.x1),
-            Math.abs(y - this.y1) / Math.abs(this.y2 - this.y1)
+            Math.abs(x - x1) / Math.abs(x2 - x1),
+            Math.abs(y - y1) / Math.abs(y2 - y1)
         ];
     }
 
