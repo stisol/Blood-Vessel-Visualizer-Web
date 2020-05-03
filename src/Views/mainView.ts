@@ -1,7 +1,7 @@
 import View from '../view';
 import RenderTarget from '../renderTarget';
 import Settings from '../settings';
-import { mat4, vec3 } from 'gl-matrix';
+import { mat4, vec3, vec4 } from 'gl-matrix';
 import Camera from '../camera';
 import Mesh from '../mesh';
 import createCubeMesh from '../meshes/cubeMesh';
@@ -45,7 +45,7 @@ export default class MainView implements View {
     public constructor(gl: WebGL2RenderingContext, transferFunction: TransferFunctionController) {
         this.gl = gl;
 
-        this.maxResolutionWidth = 2048;
+        this.maxResolutionWidth = 4096;
         this.maxResolutionHeight = this.maxResolutionWidth;
         this.reducedResolutionWidth = this.maxResolutionWidth;
         this.reducedResolutionHeight = this.maxResolutionHeight;
@@ -89,11 +89,13 @@ export default class MainView implements View {
                 mat4.perspective(this.projectionMatrix, fieldOfView, 
                     aspect, zNear, zFar);
             }
-
-            const eye = camera.position();
-            mat4.lookAt(this.modelViewMatrix, eye, this.modelCenter, [0.0, 1.0, 0.0]);
-
             
+            this.modelViewMatrix = mat4.copy(mat4.create(), camera.getTransform());
+            mat4.translate(this.modelViewMatrix, this.modelViewMatrix, vec3.negate(vec3.create(), this.modelCenter));
+
+            const eye4 = vec4.transformMat4(vec4.create(), vec4.fromValues(0.0, 0.0, 0.0, 1.0), mat4.invert(mat4.create(), this.modelViewMatrix));
+            const eye = vec3.fromValues(eye4[0], eye4[1], eye4[2]);
+
             const lightTransform = settings.lightTransform();
             const lightPos = vec3.fromValues(0.0, 0.0, 1.0);
             vec3.transformMat4(lightPos, lightPos, lightTransform);
