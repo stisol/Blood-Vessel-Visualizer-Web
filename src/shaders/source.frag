@@ -54,19 +54,17 @@ float calculateShadowCoeff(vec3 hit, vec3 ray_dir, float start, float end, float
     float solidity = 0.0;
     vec3 ray = hit + ray_dir * (step_size);
     for(float t = start+step_size; t < end; t+=step_size) {
-        float val = texture(textureData, ray).r;
-        float t_alpha = texture(uTransferFunction, vec2(val, 0.5)).a*0.99;
+        float val = texture(textureData, ray.xzy).r;
+        float t_alpha = texture(uTransferFunction, vec2(val, 0.5)).a*0.95;
         t_alpha = 1.0 - pow(1.0 - t_alpha, resolution);
         solidity += (1.0 - solidity) * t_alpha;
 
-        if(solidity >= 0.95) break;
+        if(solidity >= 0.99) break;
 
         ray += ray_dir * step_size;
     }
 
-
-
-    return sqrt(1.0 - solidity);
+    return (1.0-solidity);
 }
 
 // Returns hit location on the finished march (Will be the start of the ray if nothing was hit)
@@ -78,7 +76,7 @@ vec3 raymarch(in vec3 ray, in vec3 ray_dir, in float start, in float end, in flo
         float d = dot(ray - clipPlanePos, clipPlaneNormal);
         if(d < 0.0 || true) {
             // TODO: Make the data uniform and not dependent on max-size
-            float val = texture(textureData, ray).r;
+            float val = texture(textureData, ray.xzy).r;
 
             vec4 val_color = texture(uTransferFunction, vec2(val, 0.5));
             //val_color.a = pow(val_color.a, 3.0);
@@ -152,7 +150,7 @@ void main() {
         hit.x = max(hit.x, 0.0);
 
         float hit_light = calculateShadowCoeff(color_hit, light_dir, hit.x, hit.y, dt);
-        color.rgb *= hit_light;
+        color.rgb *= (hit_light + 0.3);
     } else {
     }
 
@@ -160,7 +158,6 @@ void main() {
     if(color.a >= 0.99) {
         gl_FragDepth = length(abs(color_hit) - abs(transformed_eye)) / 40.0;
     }
-
     
     //color = texture(uTransferFunction, vec2(ray_dir.x, 0.5));
     //color.rgb = normal(color_hit);

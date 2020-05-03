@@ -206,7 +206,7 @@ class LightSetting extends Setting {
         this.lightTransform = mat4.create();
 
         
-        const camera = new Camera([0.0, 0.0, 0.0], this.elem, -4.0);
+        const camera = new Camera([0.0, 0.0, 0.0], this.elem, 0.0);
 
         const gl = this.elem.getContext("webgl2");
         if (gl === null) {
@@ -236,18 +236,18 @@ class LightSetting extends Setting {
         mat4.ortho(perspective, -1.0, 1.0, -1.0, 1.0, 0.1, 40.0);
 
         const model = mat4.create();
-        mat4.translate(model, model, [0.0, 0.0, -5.0]);
+        mat4.translate(model, model, [0.0, 0.0, -4.0]);
 
 
         const sphere = createSphereMesh(0.75, 32, 32, false);
 
-        const line = createLineMesh(0.025, 1.0);
-        const lineTransform = mat4.create();
+        const line = createLineMesh(0.025, -1.0);
 
         const draw = (lTransform: mat4): void => {
 
             const lightPosition = vec3.fromValues(0.0, 0, 1.0);
-            vec3.transformMat4(lightPosition, lightPosition, lTransform);
+            vec3.transformMat4(lightPosition, lightPosition, mat4.mul(mat4.create(), model, lTransform));
+
             //console.log("LIGHT:", lightPosition);
             gl.clearColor(0.0, 0.0, 0.0, 1.0);
             gl.clearDepth(1.0);
@@ -264,7 +264,8 @@ class LightSetting extends Setting {
             gl.clearColor(0, 0, 0, 1);   // clear to white
 
             const projectionMatrix = mat4.create();
-            mat4.mul(projectionMatrix, perspective, model);
+            mat4.mul(projectionMatrix, model, lTransform);
+            mat4.mul(projectionMatrix, perspective, projectionMatrix);
     
             gl.uniformMatrix4fv(viewInfo.uniformLocations.projectionMatrix, false, projectionMatrix);
     
@@ -286,21 +287,25 @@ class LightSetting extends Setting {
             line.bindShader(gl, lineInfo.program);
             gl.drawElements(gl.TRIANGLES, line.indiceCount(), gl.UNSIGNED_SHORT, 0.0);*/
         }
-        draw(lineTransform);
 
         const createRotationMatrix = (dx: number, dy: number): mat4 => {
             const rect = this.elem.getBoundingClientRect();
             const x = (dx - rect.left) / 270.0 * 2.0 - 1.0;
             const y = (dy - rect.top) / 270.0 * 2.0 - 1.0;
-            const direction = vec3.fromValues(-x, y, 0.0);
+            const direction = vec3.fromValues(x, y, 0.0);
             const projectionMatrix = mat4.create();
 
-            const modelViewMatrix = mat4.create();
-            const eye = camera.position();
-            mat4.lookAt(modelViewMatrix, [0.0, 0.0, 0.0], eye, [0.0, 1.0, 0.0]);
-            console.log(eye);
+            let modelViewMatrix = mat4.create();
+
+            modelViewMatrix = mat4.copy(mat4.create(), camera.getTransform());
+
+            //const trans = mat4.translate(modelViewMatrix,modelViewMatrix, vec3.fromValues(0.0, 0.0, 4.0));
             
-            const inverted = mat4.create();
+            const inverse = mat4.invert(mat4.create(), modelViewMatrix);
+            
+            return inverse;
+
+           /* const inverted = mat4.create();
             mat4.invert(inverted, modelViewMatrix);
 
             mat4.mul(projectionMatrix, perspective, model);
@@ -319,14 +324,17 @@ class LightSetting extends Setting {
             vec3.cross(thirdAxis, primaryAxis, secondAxis);
             vec3.cross(secondAxis, primaryAxis, thirdAxis);
 
-            const rotation = mat4.fromValues(thirdAxis[0], thirdAxis[1], thirdAxis[2], 0.0, -secondAxis[0], -secondAxis[1], -secondAxis[2], 0.0, primaryAxis[0], primaryAxis[1], primaryAxis[2], 0.0, 0.0, 0.0, 0.0, 1.0)
+            const rotation = mat4.fromValues(thirdAxis[0], thirdAxis[1], thirdAxis[2], 0.0, secondAxis[0], secondAxis[1], secondAxis[2], 0.0, primaryAxis[0], primaryAxis[1], primaryAxis[2], 0.0, 0.0, 0.0, 0.0, 1.0)
             
             mat4.mul(rotation, inverted, rotation);
 
             const result = mat4.create();
             mat4.mul(result, modelViewMatrix, rotation);
-            return modelViewMatrix;
+            return modelViewMatrix;*/
         }
+        const lineTransform = createRotationMatrix(0.0, 0.0);
+        this.lightTransform = lineTransform;
+        draw(lineTransform);
 
         let doClick = false;
 

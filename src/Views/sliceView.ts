@@ -126,10 +126,12 @@ export default class SliceView implements View {
             gl.drawElements(gl.TRIANGLES, slice.getMesh().indiceCount(), gl.UNSIGNED_SHORT, 0);
 
             // 3D planar representation
-            const perspective = mat4.create(), lookat = mat4.create(), matrix = mat4.create();
+            const perspective = mat4.create(), matrix = mat4.create();
             const fieldOfView = 45 * Math.PI / 180, zNear = 0.1, zFar = 40.0;
             mat4.perspective(perspective, fieldOfView, aspect, zNear, zFar);
-            mat4.lookAt(lookat, camera.position(), this.modelCenter, [0.0, 1.0, 0.0]);
+            const lookat = mat4.copy(mat4.create(), camera.getTransform());
+            mat4.translate(lookat, lookat, vec3.negate(vec3.create(), this.modelCenter));
+            //mat4.lookAt(lookat, camera.position(), this.modelCenter, [0.0, 1.0, 0.0]);
 
             mat4.identity(matrix);
 
