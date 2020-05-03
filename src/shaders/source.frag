@@ -157,7 +157,7 @@ void main() {
 
     gl_FragDepth = 40.0;
     if(color.a >= 0.99) {
-        gl_FragDepth = length(abs(color_hit.z / position.w) - abs(transformed_eye.z)) / 40.0;
+        gl_FragDepth = length(abs(color_hit.z) - abs(transformed_eye.z)) / 40.0;
         
     }
 
