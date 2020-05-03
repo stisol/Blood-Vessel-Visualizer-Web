@@ -45,7 +45,7 @@ export default class MainView implements View {
     public constructor(gl: WebGL2RenderingContext, transferFunction: TransferFunctionController) {
         this.gl = gl;
 
-        this.maxResolutionWidth = 4096;
+        this.maxResolutionWidth = 2048;
         this.maxResolutionHeight = this.maxResolutionWidth;
         this.reducedResolutionWidth = this.maxResolutionWidth;
         this.reducedResolutionHeight = this.maxResolutionHeight;
@@ -152,49 +152,62 @@ export default class MainView implements View {
         return this.renderTarget;
     }
 
+    // Returns true if another frame should be rendered, false if we should sleep
     public updateFps(camera: Camera, settings: Settings, settingsUpdated: boolean): boolean {
+        // FPS calculation.
         const optimalFps = 30;
-
         const newTime = window.performance.now();
         const fps = 1/Math.max(newTime - this.deltaTime, 1) * 1000;
+
+        // First frame handling
         if(this.deltaTime == 0.0) {
             this.deltaTime = newTime;
             return true;
         }
         this.deltaTime = newTime;
 
+        // Rolling log of framerates for average calculation
+        const fpsLogLength = 5;
         this.fpsLog.push(fps);
-        if(this.fpsLog.length > 10) {
+        if(this.fpsLog.length > fpsLogLength) {
             this.fpsLog.shift();
         } 
-        const avgFps = this.fpsLog.reduce((a, b) => a+b, 0) / 10.0;
+        const avgFps = this.fpsLog.reduce((a, b) => a+b, 0) / fpsLogLength;
         settings.setFps(Math.round(avgFps).toString());
         
+        // Check if it's time to pause rendering.
         const viewUpdated = settingsUpdated || camera.isUpdated();
         if (!viewUpdated && this.lastSettingsUpdate + 500 < Date.now()) {
-            const doUpdate = this.maxResolutionWidth != this.renderTarget.getWidth() ||
-                this.maxResolutionHeight != this.renderTarget.getHeight();
-            this.renderTarget.resize(this.maxResolutionWidth, this.maxResolutionHeight);
-            if (!doUpdate)
             settings.setFps("Paused");
-            return doUpdate;
+            
+            // Reset resolution to max if needed and render 1 last frame
+            const needAnotherFrame = this.maxResolutionWidth != this.renderTarget.getWidth() ||
+                this.maxResolutionHeight != this.renderTarget.getHeight();
+            
+            if (needAnotherFrame) {
+                this.renderTarget.resize(this.maxResolutionWidth, this.maxResolutionHeight);
+                
+                // Clear FPS log
+                for (let i = 0; i < this.fpsLog.length; i++)
+                this.fpsLog[i] = optimalFps;
+            }    
+            return needAnotherFrame;
         }
 
-        if(viewUpdated) {
-            this.lastSettingsUpdate = Date.now();
-            if(this.renderTarget.getWidth() == this.maxResolutionWidth && this.renderTarget.getHeight() == this.maxResolutionHeight) {
-                this.renderTarget.resize(this.reducedResolutionWidth, this.reducedResolutionHeight);
-                return true;
-            }
-        }
+        // If the view has updated, store the time for later comparison.
+        if(viewUpdated) this.lastSettingsUpdate = Date.now();
         
-        let  factor = fps / optimalFps;
-        factor = Math.max(Math.min(Math.sqrt(factor), 1.0), 0.3);
-        let newFactor = Math.round(factor * 10) / 10;
-        newFactor = Math.max(Math.min(newFactor, 1.0), 0.7);
-        if(newFactor < 1.0 && avgFps < optimalFps && fps < optimalFps) {
-            const renderWidth = Math.round(this.renderTarget.getWidth() * newFactor);
-            const renderHeight = Math.round(this.renderTarget.getHeight() * newFactor);
+        // Check if framerate means a resolution drop should be made.
+        const minimumResolutionFactor = 0.2;
+        const minW = this.maxResolutionWidth * minimumResolutionFactor;
+        const minH = this.maxResolutionHeight * minimumResolutionFactor;
+
+        let factor = fps / optimalFps;
+        factor = Math.round(factor * 10) / 10;         // Round it
+        factor = Math.max(Math.min(factor, 1.0), 0.7); // Cap per-frame change
+        if(factor < 1.0 && avgFps < optimalFps) {
+            const renderWidth  = Math.round(Math.max(this.renderTarget.getWidth() * factor, minW));
+            const renderHeight = Math.round(Math.max(this.renderTarget.getHeight() * factor, minH));
             this.reducedResolutionWidth = renderWidth;
             this.reducedResolutionHeight = renderHeight;
             this.renderTarget.resize(renderWidth, renderHeight);

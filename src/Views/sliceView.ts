@@ -112,6 +112,7 @@ export default class SliceView implements View {
         gl.useProgram(this.programInfo.program);
 
         mat4.ortho(this.projectionMatrix, -1.0 * aspect, 1.0, -1.0 / aspect, 1.0, 0.0, 50.0);
+        this.textureUpdated = false;
 
         for (let i = 0; i < this.slices.length; i++) {
             // 2D slice
