@@ -60,13 +60,11 @@ export default class Camera {
     }
 
     private onMouseScroll(ev: WheelEvent): void {
-        console.log("ev", ev);
         if(Math.abs(ev.deltaY) > 0.0)
         this.zoom(-Math.sign(ev.deltaY) * 0.5 / 2.0 + 1.0);
     }
 
     public rotate(dx: number, dy: number): void {
-        console.log(dx, dy);
         if(dx == this.lastMousePos[0] && dy == this.lastMousePos[1]) return;
         /*this.theta = (this.theta + dTheta) % (Math.PI * 2);
         this.phi = Math.max(0, Math.min(Math.PI, this.phi + dPhi));
@@ -79,7 +77,6 @@ export default class Camera {
             const angle = Math.acos(Math.max(-1.0, Math.min(1.0, vec3.dot(va, vb))));
             const axis  = vec3.create();
             vec3.cross(axis, va, vb);
-
             const inverse = mat4.invert(mat4.create(), this.transform);
             const transformedAxis = vec4.transformMat4(vec4.create(), vec4.fromValues(axis[0], axis[1], axis[2], 0.0), inverse);
 
@@ -116,10 +113,8 @@ export default class Camera {
     }
 
     private arcballVector(x: number, y: number): vec3 {
-        console.log("x", x, "y", y);
         x /= $(this.canvas).width() || 1.0;
         y /= $(this.canvas).height() || 1.0;
-        console.log("dx", x, "dy", y);
         const p = vec3.fromValues(x * 2.0 - 1.0, -y * 2.0 + 1.0, 0.0);
         const length2 = p[0]*p[0] + p[1]*p[1];
         if(length2 < 1.0) {

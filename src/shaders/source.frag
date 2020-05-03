@@ -5,7 +5,7 @@ precision highp int;
 precision highp sampler3D;
 
 in vec3 vray_dir;
-in vec3 position;
+in vec4 position;
 flat in vec3 transformed_eye;
 
 out lowp vec4 color;
@@ -14,6 +14,7 @@ uniform sampler3D textureData;
 uniform sampler3D normalData;
 
 uniform int colorAccumulationType;
+uniform vec3 uEyePosition;
 
 uniform vec3 lightPos;
 
@@ -156,9 +157,10 @@ void main() {
 
     gl_FragDepth = 40.0;
     if(color.a >= 0.99) {
-        gl_FragDepth = length(abs(color_hit) - abs(transformed_eye)) / 40.0;
+        gl_FragDepth = length(abs(color_hit.z / position.w) - abs(transformed_eye.z)) / 40.0;
+        
     }
-    
+
     //color = texture(uTransferFunction, vec2(ray_dir.x, 0.5));
     //color.rgb = normal(color_hit);
     //color = vec4(abs(normal(ray - ray_dir*dt)), 1.0);

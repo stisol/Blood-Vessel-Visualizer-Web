@@ -237,6 +237,7 @@ class LightSetting extends Setting {
 
         const model = mat4.create();
         mat4.translate(model, model, [0.0, 0.0, -4.0]);
+        //mat4.rotateX(model, model, Math.PI);
 
 
         const sphere = createSphereMesh(0.75, 32, 32, false);
