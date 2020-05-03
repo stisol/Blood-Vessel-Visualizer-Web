@@ -126,6 +126,7 @@ export default class SliceView implements View {
             gl.drawElements(gl.TRIANGLES, slice.getMesh().indiceCount(), gl.UNSIGNED_SHORT, 0);
 
             // 3D planar representation
+            if (!settings.showslices()) continue;
             const perspective = mat4.create(), matrix = mat4.create();
             const fieldOfView = 45 * Math.PI / 180, zNear = 0.1, zFar = 40.0;
             if (settings.isOrtographicCamera()) {

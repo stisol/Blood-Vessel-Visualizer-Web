@@ -130,8 +130,7 @@ export default class MainView implements View {
 
         gl.uniform1i(this.programInfo.uniformLocations.textureData, 0);
         gl.uniform1i(this.programInfo.uniformLocations.normalData, 1);
-        const depth = settings.skinOpacity();
-        gl.uniform1f(this.programInfo.uniformLocations.depth, depth);
+        gl.uniform1f(this.programInfo.uniformLocations.depth, 0);
         {
             this.mesh.bindShader(gl, this.programInfo.program);
             gl.drawElements(gl.TRIANGLES, this.mesh.indiceCount(), gl.UNSIGNED_SHORT, 0);

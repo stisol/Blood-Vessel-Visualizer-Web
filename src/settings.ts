@@ -394,11 +394,9 @@ export default class Settings {
     public constructor() {
         const sidebar = document.getElementById("sidebar") as HTMLDivElement;
 
-        const defaultSkinOpacity = 0.3;
-        
         this.settings = {
             fps: new TextSetting(sidebar, null, "FPS: N/A"),
-            skinOpacity: new SliderSetting(sidebar, "Skin Opacity", defaultSkinOpacity, 0.0, 1.0, 0.001, "skinOpacity", "slider"),
+            showSlices: new CheckboxSetting(sidebar, "Show Slices", false, "show-slices", "checkbox"),
             isOrthoElem: new CheckboxSetting(sidebar, "Orthographic Camera", false, "orthographic-camera", "checkbox"),
             defaultColor: new ColorSelectSetting(sidebar, "Default color", "#FFE0BDFF", "defaultColor", "color-picker"),
             accumulationMethod: new SelectSetting(sidebar, "Color accumulation Method", [
@@ -416,8 +414,8 @@ export default class Settings {
         return isUpdated;
     }
 
-    public skinOpacity(): number {
-        return this.settings["skinOpacity"].value();
+    public showslices(): boolean {
+        return this.settings["showSlices"].value();
     }
 
     public isOrtographicCamera(): boolean {
@@ -441,4 +439,3 @@ export default class Settings {
         return this.settings["light"].value();
     }
 }
-
