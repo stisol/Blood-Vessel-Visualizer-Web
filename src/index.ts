@@ -5,7 +5,6 @@ import createSquareMesh from "./meshes/squareMesh";
 import { initShaderProgram, bindTexture } from "./shader";
 import TransferFunctionController from "./transferFunction";
 
-import View from './view';
 import MainView from './Views/mainView';
 import SliceView from './Views/sliceView';
 import Camera from "./camera";
@@ -29,8 +28,8 @@ async function Init(): Promise<void> {
     const settings = new Settings();
     const sidebar = document.getElementById("sidebar") as HTMLDivElement;
     const transferFunction = new TransferFunctionController(volumeData, sidebar, settings);
-    const renderView: View = new MainView(gl, transferFunction,);
-    const renderSlice: View = new SliceView(gl, transferFunction, renderView.getRenderTarget(), loadedData);
+    const renderView = new MainView(gl, transferFunction,);
+    const renderSlice = new SliceView(gl, transferFunction, renderView.getRenderTarget(), loadedData);
     const camera = new Camera([0.5, 0.5, 0.5], document.getElementById("theCanvas") as HTMLCanvasElement);
     const view = createSquareMesh(-1.0, 1.0);
 
@@ -48,9 +47,18 @@ async function Init(): Promise<void> {
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
-        const settingsUpdated = settings.isUpdated();
-        renderView.render(canvas.clientWidth / canvas.clientHeight, camera, settings, settingsUpdated);
-        renderSlice.render(canvas.clientWidth / canvas.clientHeight, camera, settings, settingsUpdated);
+        const settingsUpdated = settings.isUpdated() || transferFunction.transferFunctionUpdated;
+        const sliceUpdated = renderSlice.textureUpdated;
+        const newFrame = renderView.updateFps(camera, settings, settingsUpdated);
+        if (newFrame || settingsUpdated || sliceUpdated) {
+            renderView.getRenderTarget().bindFramebuffer();
+            gl.clearColor(0.0, 0.0, 0.0, 1.0);
+            gl.clearDepth(1.0);
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+            renderSlice.render(canvas.clientWidth / canvas.clientHeight, camera, settings);
+            renderView.render(canvas.clientWidth / canvas.clientHeight, camera, settings);
+        }
 
         //test = false;
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
