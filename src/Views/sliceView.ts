@@ -144,17 +144,15 @@ export default class SliceView implements View {
 
             switch (i) {
                 case 0:
-                    mat4.translate(matrix, matrix, [0, 0, this.controlDepth]);
+                    mat4.translate(matrix, matrix, [0, this.controlDepth, 0]);
+                    mat4.rotateX(matrix, matrix, Math.PI / 2)
                     break;
                 case 1:
-                    mat4.translate(matrix, matrix, [0, this.controlHeight, 0]);
-                    mat4.rotateX(matrix, matrix, Math.PI / 2)
+                    mat4.translate(matrix, matrix, [0, 0, this.controlHeight]);
                     break;
                 case 2:
                     mat4.translate(matrix, matrix, [this.controlWidth, 0, 0]);
                     mat4.rotateY(matrix, matrix, -Math.PI / 2);
-                    mat4.rotateZ(matrix, matrix, Math.PI / 2);
-                    mat4.rotateX(matrix, matrix, Math.PI);
                     break;
             }
 
