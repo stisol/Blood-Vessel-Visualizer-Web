@@ -71,7 +71,7 @@ export default class MainView implements View {
         this.renderTarget.bindFramebuffer();
 
         gl.enable(gl.CULL_FACE);
-        gl.cullFace(gl.FRONT);
+        gl.cullFace(gl.BACK);
         gl.viewport(0, 0, this.renderTarget.getWidth(), this.renderTarget.getHeight());
 
         const zNear = 0.1;
@@ -86,7 +86,6 @@ export default class MainView implements View {
         
         this.modelViewMatrix = mat4.copy(mat4.create(), camera.getTransform());
         mat4.translate(this.modelViewMatrix, this.modelViewMatrix, vec3.negate(vec3.create(), this.modelCenter));
-        mat4.mul(this.modelViewMatrix, this.modelViewMatrix, loadedData.scale);
 
         const eye4 = vec4.transformMat4(vec4.create(), vec4.fromValues(0.0, 0.0, 0.0, 1.0), mat4.invert(mat4.create(), this.modelViewMatrix));
         const eye = vec3.fromValues(eye4[0], eye4[1], eye4[2]);
@@ -99,6 +98,12 @@ export default class MainView implements View {
         gl.useProgram(this.programInfo.program);
         gl.uniform3fv(this.programInfo.uniformLocations.eyePos, eye);
         gl.uniform3fv(this.programInfo.uniformLocations.lightPosition, lightPos);
+        
+        const scale = loadedData.scale;
+        const boxMin = vec3.transformMat4(vec3.create(), vec3.fromValues(0.0, 0.0, 0.0), scale);
+        const boxMax = vec3.transformMat4(vec3.create(), vec3.fromValues(1.0, 1.0, 1.0), scale);
+        gl.uniform3fv(this.programInfo.uniformLocations.boxMin, boxMin);
+        gl.uniform3fv(this.programInfo.uniformLocations.boxMax, boxMax);
 
         gl.uniform1i(this.programInfo.uniformLocations.colorAccumulationType, settings.accumulationMethod());
         const matrix = mat4.create();
@@ -108,6 +113,7 @@ export default class MainView implements View {
             this.programInfo.uniformLocations.projectionMatrix,
             false,
             matrix);
+        gl.uniformMatrix4fv(this.programInfo.uniformLocations.scaleMatrix, false, scale);
 
             
         // Check for transfer function update
@@ -228,6 +234,7 @@ class ProgramInfo {
 class UniformLocations {
     projectionMatrix: WebGLUniformLocation;
     modelViewMatrix: WebGLUniformLocation;
+    scaleMatrix: WebGLUniformLocation;
     depth: WebGLUniformLocation;
     transferFunction: WebGLUniformLocation;
     eyePos: WebGLUniformLocation;
@@ -235,12 +242,16 @@ class UniformLocations {
     normalData: WebGLUniformLocation;
     colorAccumulationType: WebGLUniformLocation;
     lightPosition: WebGLUniformLocation;
+    boxMin: WebGLUniformLocation;
+    boxMax: WebGLUniformLocation;
 
     constructor(gl: WebGL2RenderingContext, shaderProgram: WebGLShader) {        
         this.projectionMatrix = 
             gl.getUniformLocation(shaderProgram, "uProjectionMatrix") as WebGLUniformLocation;
         this.modelViewMatrix = 
             gl.getUniformLocation(shaderProgram, "uModelViewMatrix") as WebGLUniformLocation;
+        this.scaleMatrix = 
+            gl.getUniformLocation(shaderProgram, "uScaleMatrix") as WebGLUniformLocation;
         this.depth = 
             gl.getUniformLocation(shaderProgram, "uDepth") as WebGLUniformLocation;
         this.transferFunction = 
@@ -255,5 +266,9 @@ class UniformLocations {
             gl.getUniformLocation(shaderProgram, "colorAccumulationType") as WebGLUniformLocation;
         this.lightPosition = 
             gl.getUniformLocation(shaderProgram, "lightPos") as WebGLUniformLocation;
+        this.boxMin = 
+            gl.getUniformLocation(shaderProgram, "box_min") as WebGLUniformLocation;
+        this.boxMax = 
+            gl.getUniformLocation(shaderProgram, "box_max") as WebGLUniformLocation;
     }
 }

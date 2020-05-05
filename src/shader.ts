@@ -94,6 +94,7 @@ export async function bindTexture(url: string, ini: string, gl: WebGL2RenderingC
         max = Math.max(max, floatArray[i]);
     }
     console.log("Max is ", max);
+    console.log(scale);
 
     const texture = gl.createTexture();
     gl.activeTexture(gl.TEXTURE0);
@@ -108,7 +109,7 @@ export async function bindTexture(url: string, ini: string, gl: WebGL2RenderingC
     gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
     const volumeData = new Float32Array(floatArray.slice(3));
-    //const normalData = new Float32Array(volumeData.length * 3);
+    const normalData = new Float32Array(volumeData.length * 3);
 
     for (let i = 0; i < volumeData.length; ++i) {
         volumeData[i] /= max;
@@ -126,16 +127,16 @@ export async function bindTexture(url: string, ini: string, gl: WebGL2RenderingC
         volumeData
     );
 
-    /*const index = (x: number, y: number, z: number): number =>
+    const index = (x: number, y: number, z: number): number =>
         Math.max(Math.min(x + y * width + z * width * height, volumeData.length), 0);
 
     for (let i = 0; i < volumeData.length; ++i) {
         const x = Math.round((i)) % width;
         const y = Math.round((i / width)) % height;
         const z = Math.round((i / width / height)) % depth;
-        normalData[i * 3+2] = -(volumeData[index(x, y, z - 1)] - volumeData[index(x, y, z + 1)]) / 2.0;
+        normalData[i * 3    ] = (volumeData[index(x - 1, y, z)] - volumeData[index(x + 1, y, z)]) / 2.0;
         normalData[i * 3 + 1] = (volumeData[index(x, y - 1, z)] - volumeData[index(x, y + 1, z)]) / 2.0;
-        normalData[i * 3 ] = (volumeData[index(x - 1, y, z)] - volumeData[index(x + 1, y, z)]) / 2.0;
+        normalData[i * 3 + 2] = (volumeData[index(x, y, z - 1)] - volumeData[index(x, y, z + 1)]) / 2.0;
 
         const factor = Math.max(Math.abs(normalData[i * 3]), Math.max(Math.abs(normalData[i * 3 + 1]), Math.abs(normalData[i * 3 + 2])));
         //if(factor > 0.025) {
@@ -146,7 +147,7 @@ export async function bindTexture(url: string, ini: string, gl: WebGL2RenderingC
             normalData[i * 3] = 0.0;
             normalData[i * 3 + 1] = 0.0;
             normalData[i * 3 + 2] = 0.0;
-        }
+        }*/
     }
     const texture2 = gl.createTexture();
     gl.activeTexture(gl.TEXTURE1);
@@ -170,7 +171,7 @@ export async function bindTexture(url: string, ini: string, gl: WebGL2RenderingC
         gl.RGB,
         gl.FLOAT,
         normalData
-    );*/
+    );
 
     return new LoadedTextureData(volumeData, height, width, depth, scale);
 }
