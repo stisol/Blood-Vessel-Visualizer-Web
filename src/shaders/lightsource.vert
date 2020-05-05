@@ -11,6 +11,6 @@ out vec2 texCoord;
 
 void main() {
     gl_Position = uProjectionMatrix * vec4(uLightPosition + aVertexPosition, 1.0);
-    position = gl_Position.xyz;
+    position = gl_Position.xyz / gl_Position.w;
     texCoord = aTextureCoord;
 }

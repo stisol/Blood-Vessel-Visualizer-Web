@@ -6,6 +6,7 @@ precision highp sampler3D;
 
 in vec3 vray_dir;
 in vec4 position;
+in float depth;
 flat in vec3 transformed_eye;
 
 out lowp vec4 color;
@@ -17,6 +18,7 @@ uniform int colorAccumulationType;
 uniform vec3 uEyePosition;
 
 uniform vec3 lightPos;
+uniform mat4 uProjectionMatrix;
 
 const vec3 clipPlanePos = vec3(0.5, 0.0, 0.0);
 const vec3 clipPlaneNormal = vec3(1.0, 0.0, 0.0);
@@ -155,12 +157,15 @@ void main() {
     } else {
     }
 
-    gl_FragDepth = 40.0;
-    if(color.a >= 0.99) {
-        gl_FragDepth = length(abs(color_hit.z) - abs(transformed_eye.z)) / 40.0;
-        
+    gl_FragDepth = gl_DepthRange.far;
+    if(color.a > 0.99) {
+        vec4 clip_coord = uProjectionMatrix * vec4(color_hit, 1.0);
+        float depth_traced = clip_coord.z / clip_coord.w;
+        /*gl_FragDepth = 40.0;
+            gl_FragDepth = (depthTraced) / 40.0;*/
+            float far=gl_DepthRange.far; float near=gl_DepthRange.near;
+        gl_FragDepth = ((far - near) * (depth_traced) + near + far) / 2.0;
     }
-
     //color = texture(uTransferFunction, vec2(ray_dir.x, 0.5));
     //color.rgb = normal(color_hit);
     //color = vec4(abs(normal(ray - ray_dir*dt)), 1.0);

@@ -61,7 +61,7 @@ export default class Camera {
 
     private onMouseScroll(ev: WheelEvent): void {
         if(Math.abs(ev.deltaY) > 0.0)
-        this.zoom(-Math.sign(ev.deltaY) * 0.5 / 2.0 + 1.0);
+        this.zoom(-Math.sign(ev.deltaY) * 0.5);
     }
 
     public rotate(dx: number, dy: number): void {
@@ -88,7 +88,9 @@ export default class Camera {
 
     public zoom(distance: number): void {
         this.radius = Math.max(0, this.radius - distance);
-        mat4.scale(this.transform, this.transform, vec3.fromValues(distance, distance, distance));
+        const translation = mat4.create();
+        mat4.translate(translation, translation, vec3.fromValues(0.0, 0.0, distance));
+        mat4.mul(this.transform, translation, this.transform);
         this.updated = true;
     }
 

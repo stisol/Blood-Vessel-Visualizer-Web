@@ -19,5 +19,5 @@ void main() {
         float v = texture(textureData, texCoord).r;
         color = vec4(v, v, v, 1.0);
     }
-	gl_FragDepth = zDepth / 40.0;
+	//gl_FragDepth = zDepth / 40.0;
 }

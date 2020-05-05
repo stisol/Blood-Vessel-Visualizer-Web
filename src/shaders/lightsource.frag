@@ -13,5 +13,5 @@ uniform sampler2D textureData;
 
 void main() {
     color = texture(textureData, texCoord);
-    gl_FragDepth = position.z / 40.0;
+    //gl_FragDepth = position.z / 40.0;
 }

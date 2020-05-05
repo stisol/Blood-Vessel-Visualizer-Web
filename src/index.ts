@@ -22,7 +22,7 @@ async function Init(): Promise<void> {
         return;
     }
 
-    const loadedData = await bindTexture("./data/hand.dat", gl);
+    const loadedData = await bindTexture("./data/sinusveins.dat", gl);
     const volumeData = loadedData.data;
 
     const settings = new Settings();
