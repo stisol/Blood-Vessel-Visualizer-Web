@@ -71,7 +71,7 @@ export default class MainView implements View {
         this.renderTarget.bindFramebuffer();
 
         gl.enable(gl.CULL_FACE);
-        gl.cullFace(gl.BACK);
+        gl.cullFace(gl.FRONT);
         gl.viewport(0, 0, this.renderTarget.getWidth(), this.renderTarget.getHeight());
 
         const zNear = 0.1;

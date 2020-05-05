@@ -157,6 +157,8 @@ export default class SliceView implements View {
                     break;
             }
 
+            mat4.mul(matrix, loadedData.scale, matrix);
+
             mat4.multiply(matrix, lookat, matrix);
             mat4.multiply(matrix, perspective, matrix);
             
