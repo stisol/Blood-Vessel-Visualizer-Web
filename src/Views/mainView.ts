@@ -24,8 +24,6 @@ export default class MainView implements View {
 
     private programInfo: ProgramInfo;
 
-    private modelCenter: [number, number, number] = [0.5, 0.5, 0.5];
-
     private deltaTime: number;
     private fpsLog: number[] = [];
 
@@ -85,7 +83,7 @@ export default class MainView implements View {
         }
         
         this.modelViewMatrix = mat4.copy(mat4.create(), camera.getTransform());
-        mat4.translate(this.modelViewMatrix, this.modelViewMatrix, vec3.negate(vec3.create(), this.modelCenter));
+        //mat4.translate(this.modelViewMatrix, this.modelViewMatrix, vec3.negate(vec3.create(), this.modelCenter));
 
         const eye4 = vec4.transformMat4(vec4.create(), vec4.fromValues(0.0, 0.0, 0.0, 1.0), mat4.invert(mat4.create(), this.modelViewMatrix));
         const eye = vec3.fromValues(eye4[0], eye4[1], eye4[2]);
@@ -100,13 +98,19 @@ export default class MainView implements View {
         gl.uniform3fv(this.programInfo.uniformLocations.lightPosition, lightPos);
         
         const scale = loadedData.scale;
-        const boxMin = vec3.transformMat4(vec3.create(), vec3.fromValues(0.0, 0.0, 0.0), scale);
+        const boxMin = vec3.transformMat4(vec3.create(), vec3.fromValues(-1.0,-1.0,-1.0), scale);
         const boxMax = vec3.transformMat4(vec3.create(), vec3.fromValues(1.0, 1.0, 1.0), scale);
         gl.uniform3fv(this.programInfo.uniformLocations.boxMin, boxMin);
         gl.uniform3fv(this.programInfo.uniformLocations.boxMax, boxMax);
 
+        //const modelScale = mat4.create();
+        //mat4.translate(modelScale, modelScale, this.modelCenter);
+        //mat4.mul(modelScale, modelScale, scale);
+        //mat4.translate(modelScale, modelScale, vec3.negate(vec3.create(), this.modelCenter));
+
         gl.uniform1i(this.programInfo.uniformLocations.colorAccumulationType, settings.accumulationMethod());
         const matrix = mat4.create();
+        //mat4.multiply(matrix, this.modelViewMatrix, modelScale);
         mat4.multiply(matrix, this.projectionMatrix, this.modelViewMatrix);
 
         gl.uniformMatrix4fv(

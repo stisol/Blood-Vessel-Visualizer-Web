@@ -51,7 +51,7 @@ vec2 intersect_box(vec3 orig, vec3 dir) {
 }
 
 vec3 get_normal(vec3 pos) {
-    return normalize(texture(normalData, pos).rgb);
+    return normalize(texture(normalData, pos/2.0 + 0.5).rgb);
 }
 
 float rand(vec2 co){
@@ -79,9 +79,9 @@ float calculateAmbientOcclusionCoeff(vec3 hit) {
         float theta = (rand(vec2(z, i)) * 2.0 - 1.0) * 3.1415;
         float x = r * cos(theta);
         float y = r * sin(theta);
-        vec3 direction = normalize(x * T + y * S + z * norm) * 0.01;
+        vec3 direction = normalize(x * T + y * S + z * norm) * 0.05;
         
-        float val = texture(textureData, texSpaceRay + direction).r;
+        float val = texture(textureData, texSpaceRay/2.0+0.5 + direction).r;
         float t_alpha = texture(uTransferFunction, vec2(val, 0.5)).a;
 
         //color.rgb = vec3(val);
@@ -108,12 +108,14 @@ float calculateShadowCoeff(vec3 hit, vec3 ray_dir, float start, float end, float
     for(float t = start+step_size; t < end; t+=step_size) {
         float d = dot(ray - clipPlanePos, clipPlaneNormal);
         if(d < 0.0 || true) {
-            float val = texture(textureData, texSpaceRay).r;
+            float val = texture(textureData, texSpaceRay/2.0+0.5).r;
             float t_alpha = texture(uTransferFunction, vec2(val, 0.5)).a;
             t_alpha = 1.0 - pow(1.0 - t_alpha, resolution);
             solidity += (1.0 - solidity) * t_alpha;
 
-            if(solidity >= 0.95) break;
+            if(solidity >= 0.99) {
+                break;
+            }
         }
 
         ray += ray_dir * step_size;
@@ -134,7 +136,7 @@ vec3 raymarch(in vec3 ray, in vec3 ray_dir, in float start, in float end, in flo
         float d = dot(ray - clipPlanePos, clipPlaneNormal);
         if(d < 0.0 || true) {
             // TODO: Make the data uniform and not dependent on max-size
-            float val = texture(textureData, texSpaceRay).r;
+            float val = texture(textureData, texSpaceRay/2.0+0.5).r;
 
             vec4 val_color = texture(uTransferFunction, vec2(val, 0.5));
             //val_color.a = pow(val_color.a, 3.0);
@@ -217,13 +219,14 @@ void main() {
     } else {
     }
 
-    /*gl_FragDepth = gl_DepthRange.far;
+    gl_FragDepth = gl_DepthRange.far;
     if(color.a > 0.99) {
         vec4 clip_coord = uProjectionMatrix * vec4(color_hit, 1.0);
         float depth_traced = clip_coord.z / clip_coord.w;
             float far=gl_DepthRange.far; float near=gl_DepthRange.near;
         gl_FragDepth = ((far - near) * (depth_traced) + near + far) / 2.0;
-    }*/
+    }
+
     //color = texture(uTransferFunction, vec2(ray_dir.x, 0.5));
     //color.rgb = normal(color_hit);
     //color = vec4(abs(normal(ray - ray_dir*dt)), 1.0);
