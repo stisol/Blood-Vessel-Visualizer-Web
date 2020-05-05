@@ -1,6 +1,7 @@
 import makeRequest from "./util";
 import { isNullOrUndefined } from "util";
-
+import { mat4, vec3 } from "gl-matrix";
+import {parse} from "ini";
 
 /**
  * Initialize a shader program, so WebGL knows how to draw our data.
@@ -60,10 +61,19 @@ function loadShader(
     return shader;
 }
 
-export async function bindTexture(url: string, gl: WebGL2RenderingContext): Promise<LoadedTextureData> {
+export async function bindTexture(url: string, ini: string, gl: WebGL2RenderingContext): Promise<LoadedTextureData> {
     const buffer = await makeRequest("GET", url, "arraybuffer") as ArrayBuffer;
+    const iniData = await makeRequest("GET", ini, "text");
 
     if (!buffer) throw "Could not load the texture data.";
+    if (!iniData) throw "Could not load ini data.";
+    const scale = mat4.create();
+    const sizes = parse(iniData as string);
+
+    const datScaleX = parseFloat(sizes.DatFile["oldDat Spacing X"]);
+    const datScaleY = parseFloat(sizes.DatFile["oldDat Spacing Y"]);
+    const datScaleZ = parseFloat(sizes.DatFile["oldDat Spacing Z"]);
+    mat4.scale(scale, scale, vec3.fromValues(datScaleX, datScaleY, datScaleZ));
 
     const floatArray = new Int16Array(buffer);
 
@@ -71,6 +81,11 @@ export async function bindTexture(url: string, gl: WebGL2RenderingContext): Prom
     const height = floatArray[1];
     const depth = floatArray[2];
     console.log(width, height, depth);
+
+    const largestAxis = Math.max(width, Math.max(height, depth));
+    mat4.scale(scale, scale, vec3.fromValues(width/largestAxis, height/largestAxis, depth/largestAxis));
+
+    // TODO: Scale based on ini file too
 
     // Normalize
     console.log("Calculating max");
@@ -93,7 +108,7 @@ export async function bindTexture(url: string, gl: WebGL2RenderingContext): Prom
     gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
     const volumeData = new Float32Array(floatArray.slice(3));
-    const normalData = new Float32Array(volumeData.length * 3);
+    //const normalData = new Float32Array(volumeData.length * 3);
 
     for (let i = 0; i < volumeData.length; ++i) {
         volumeData[i] /= max;
@@ -111,7 +126,7 @@ export async function bindTexture(url: string, gl: WebGL2RenderingContext): Prom
         volumeData
     );
 
-    const index = (x: number, y: number, z: number): number =>
+    /*const index = (x: number, y: number, z: number): number =>
         Math.max(Math.min(x + y * width + z * width * height, volumeData.length), 0);
 
     for (let i = 0; i < volumeData.length; ++i) {
@@ -131,7 +146,7 @@ export async function bindTexture(url: string, gl: WebGL2RenderingContext): Prom
             normalData[i * 3] = 0.0;
             normalData[i * 3 + 1] = 0.0;
             normalData[i * 3 + 2] = 0.0;
-        }*/
+        }
     }
     const texture2 = gl.createTexture();
     gl.activeTexture(gl.TEXTURE1);
@@ -155,9 +170,9 @@ export async function bindTexture(url: string, gl: WebGL2RenderingContext): Prom
         gl.RGB,
         gl.FLOAT,
         normalData
-    );
+    );*/
 
-    return new LoadedTextureData(volumeData, height, width, depth);
+    return new LoadedTextureData(volumeData, height, width, depth, scale);
 }
 
 export class LoadedTextureData {
@@ -165,11 +180,13 @@ export class LoadedTextureData {
     public height: number;
     public width: number;
     public depth: number;
+    public scale: mat4;
 
-    constructor(data: Float32Array, height: number, width: number, depth: number) {
+    constructor(data: Float32Array, height: number, width: number, depth: number, scale: mat4) {
         this.data = data;
         this.height = height;
         this.width = width;
         this.depth = depth;
+        this.scale = scale;
     }
 }

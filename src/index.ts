@@ -22,7 +22,7 @@ async function Init(): Promise<void> {
         return;
     }
 
-    const loadedData = await bindTexture("./data/sinusveins.dat", gl);
+    const loadedData = await bindTexture("./data/sinusveins.dat", "./data/sinusveins.ini", gl);
     const volumeData = loadedData.data;
 
     const settings = new Settings();
@@ -56,8 +56,8 @@ async function Init(): Promise<void> {
             gl.clearDepth(1.0);
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-            renderSlice.render(canvas.clientWidth / canvas.clientHeight, camera, settings);
-            renderView.render(canvas.clientWidth / canvas.clientHeight, camera, settings);
+            renderSlice.render(canvas.clientWidth / canvas.clientHeight, camera, settings, loadedData);
+            renderView.render(canvas.clientWidth / canvas.clientHeight, camera, settings, loadedData);
         }
 
         //test = false;

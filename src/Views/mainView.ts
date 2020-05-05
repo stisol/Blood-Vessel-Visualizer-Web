@@ -8,7 +8,7 @@ import createCubeMesh from '../meshes/cubeMesh';
 
 import vert from "../shaders/source.vert";
 import frag from "../shaders/source.frag";
-import { initShaderProgram } from '../shader';
+import { initShaderProgram, LoadedTextureData } from '../shader';
 import TransferFunctionController from '../transferFunction';
 import Light from '../light';
 
@@ -65,7 +65,7 @@ export default class MainView implements View {
     }
 
     // eslint-disable-next-line @typescript-eslint/no-empty-function
-    render(aspect: number, camera: Camera, settings: Settings): void {
+    render(aspect: number, camera: Camera, settings: Settings, loadedData: LoadedTextureData): void {
         const gl = this.gl;
         
         this.renderTarget.bindFramebuffer();
@@ -86,6 +86,7 @@ export default class MainView implements View {
         
         this.modelViewMatrix = mat4.copy(mat4.create(), camera.getTransform());
         mat4.translate(this.modelViewMatrix, this.modelViewMatrix, vec3.negate(vec3.create(), this.modelCenter));
+        mat4.mul(this.modelViewMatrix, this.modelViewMatrix, loadedData.scale);
 
         const eye4 = vec4.transformMat4(vec4.create(), vec4.fromValues(0.0, 0.0, 0.0, 1.0), mat4.invert(mat4.create(), this.modelViewMatrix));
         const eye = vec3.fromValues(eye4[0], eye4[1], eye4[2]);
