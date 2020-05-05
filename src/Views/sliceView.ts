@@ -45,7 +45,7 @@ export default class SliceView implements View {
         this.slices.push(new Slice(gl, [255, 0, 0], 0, volumeData.width, volumeData.height));
         this.slices.push(new Slice(gl, [0, 255, 0], 1, volumeData.width, volumeData.depth));
         this.slices.push(new Slice(gl, [0, 0, 255], 2, volumeData.height, volumeData.depth));
-        this.mesh3d = Slice.mesh(0, 1, 0, 1);
+        this.mesh3d = Slice.mesh(-1, 1, -1, 1);
 
         const shaderProgram = initShaderProgram(gl, vert, frag);
         this.programInfo = new ProgramInfo(gl, shaderProgram);
@@ -129,7 +129,7 @@ export default class SliceView implements View {
                 
             // 3D planar representation
             if (!settings.showslices()) continue;
-            const perspective = mat4.create(), matrix = mat4.create();
+            const perspective = mat4.create();
             const fieldOfView = 45 * Math.PI / 180, zNear = 0.1, zFar = 40.0;
             if (settings.isOrtographicCamera()) {
                 mat4.ortho(perspective, -1.0, 1.0, -1.0, 1.0, zNear, zFar);
@@ -139,20 +139,19 @@ export default class SliceView implements View {
             }
             const lookat = mat4.copy(mat4.create(), camera.getTransform());
             mat4.translate(lookat, lookat, vec3.negate(vec3.create(), this.modelCenter));
-            //mat4.lookAt(lookat, camera.position(), this.modelCenter, [0.0, 1.0, 0.0]);
 
-            mat4.identity(matrix);
-
+            // Center the slices before offsetting by the slider
+            const matrix = mat4.translate(mat4.create(), mat4.create(), [0.5, 1, 0.5]);
             switch (i) {
                 case 0:
-                    mat4.translate(matrix, matrix, [0, 0, this.controlDepth]);
+                    mat4.translate(matrix, matrix, [0, 0, 2 * this.controlDepth - 1]);
                     break;
                 case 1:
-                    mat4.translate(matrix, matrix, [0, this.controlHeight, 0]);
+                    mat4.translate(matrix, matrix, [0, 2 * this.controlHeight - 1, 0]);
                     mat4.rotateX(matrix, matrix, Math.PI / 2)
                     break;
                 case 2:
-                    mat4.translate(matrix, matrix, [this.controlWidth, 0, 0]);
+                    mat4.translate(matrix, matrix, [2 * this.controlWidth - 1, 0, 0]);
                     mat4.rotateY(matrix, matrix, -Math.PI / 2);
                     mat4.rotateZ(matrix, matrix, Math.PI / 2);
                     mat4.rotateX(matrix, matrix, Math.PI);
