@@ -9,6 +9,6 @@ out float zDepth;
 void main() {
     vec4 pos = uProjectionMatrix * vec4(aVertexPosition, 1.0);
     gl_Position = pos;
-    zDepth = pos.z / pos.w;
+    zDepth = pos.z;
     texCoord = aTextureCoord;
 }

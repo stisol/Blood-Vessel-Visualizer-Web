@@ -387,6 +387,12 @@ class LightSetting extends Setting {
     }
 }
 
+export enum Layout {
+    Focus,
+    View3D,
+    Quad
+}
+
 export default class Settings {
     private settings: {[item: string]: Setting};
     
@@ -402,6 +408,11 @@ export default class Settings {
             accumulationMethod: new SelectSetting(sidebar, "Color accumulation Method", [
                 {value: "0", text: "Accumulate"},
                 {value: "1", text: "Maximum Intensity Projection"}
+            ]),
+            layout: new SelectSetting(sidebar, "Layout", [
+                {value: "0", text: "Focus"},
+                {value: "1", text: "3D View only"},
+                {value: "2", text: "Quad view"}
             ]),
             light: new LightSetting(sidebar, "Light position")
         };
@@ -437,5 +448,14 @@ export default class Settings {
 
     public lightTransform(): mat4 {
         return this.settings["light"].value();
+    }
+
+    public layout(): Layout {
+        switch (this.settings["layout"].value()) {
+            case "0": return Layout.Focus;
+            case "1": return Layout.View3D;
+            case "2": return Layout.Quad;
+            default: throw "Unknown layout type " + this.settings["layout"].value();
+        }
     }
 }
