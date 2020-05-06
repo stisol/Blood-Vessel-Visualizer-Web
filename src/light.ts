@@ -50,7 +50,7 @@ export default class Light {
         return texture;
     }
 
-    draw(transform: mat4, position: vec3): void {
+draw(transform: mat4, position: vec3): void {
         const gl = this.gl;
         gl.useProgram(this.shader);
         gl.uniform3fv(this.lightUniform, position);

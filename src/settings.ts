@@ -206,7 +206,7 @@ class LightSetting extends Setting {
         this.lightTransform = mat4.create();
 
         
-        const camera = new Camera([0.0, 0.0, 0.0], this.elem, 0.0);
+        const camera = new Camera([0.0, 0.0, 0.0], this.elem, 0.0, true, true);
 
         const gl = this.elem.getContext("webgl2");
         if (gl === null) {
@@ -299,7 +299,7 @@ class LightSetting extends Setting {
             let modelViewMatrix = mat4.create();
 
             modelViewMatrix = mat4.copy(mat4.create(), camera.getTransform());
-
+            mat4.rotateX(modelViewMatrix, modelViewMatrix, Math.PI);
             //const trans = mat4.translate(modelViewMatrix,modelViewMatrix, vec3.fromValues(0.0, 0.0, 4.0));
             
             const inverse = mat4.invert(mat4.create(), modelViewMatrix);

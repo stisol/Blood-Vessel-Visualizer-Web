@@ -15,7 +15,10 @@ export default class Camera {
     private transform: mat4;
     private canvas: HTMLCanvasElement;
 
-    public constructor(target: vec3, canvas: HTMLCanvasElement, radius = 4.0) {
+    private invertY: boolean;
+    private disableRoll: boolean;
+
+    public constructor(target: vec3, canvas: HTMLCanvasElement, radius = 4.0, invertY = false, disableRoll = false) {
         this.target = target;
 
         // JQuery is good at automatically creating event handler queues.
@@ -33,6 +36,9 @@ export default class Camera {
             
         this.radius = radius;
         this.canvas = canvas;
+
+        this.invertY = invertY;
+        this.disableRoll = disableRoll;
     }
 
     public isUpdated(): boolean {
@@ -72,6 +78,8 @@ export default class Camera {
 
         const va = this.arcballVector(this.lastMousePos[0], this.lastMousePos[1]);
         const vb = this.arcballVector(dx, dy);
+
+        if(isNaN(vb[0]) || isNaN(va[0])) return;
 
         if(va != vb) {
             const angle = Math.acos(Math.max(-1.0, Math.min(1.0, vec3.dot(va, vb))));
@@ -117,9 +125,11 @@ export default class Camera {
     private arcballVector(x: number, y: number): vec3 {
         x /= $(this.canvas).width() || 1.0;
         y /= $(this.canvas).height() || 1.0;
-        const p = vec3.fromValues(x * 2.0 - 1.0, -y * 2.0 + 1.0, 0.0);
+        
+        let p = vec3.fromValues(x * 2.0 - 1.0, -y * 2.0 + 1.0, 0.0);
+        if(this.invertY) p = vec3.fromValues(x * 2.0 - 1.0, y * 2.0 - 1.0, 0.0);
         const length2 = p[0]*p[0] + p[1]*p[1];
-        if(length2 < 1.0) {
+        if(length2 < 1.0 || !this.disableRoll) {
             p[2] = Math.sqrt(1.0 - length2);
             vec3.normalize(p, p);
         }

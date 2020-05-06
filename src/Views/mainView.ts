@@ -103,11 +103,6 @@ export default class MainView implements View {
         gl.uniform3fv(this.programInfo.uniformLocations.boxMin, boxMin);
         gl.uniform3fv(this.programInfo.uniformLocations.boxMax, boxMax);
 
-        //const modelScale = mat4.create();
-        //mat4.translate(modelScale, modelScale, this.modelCenter);
-        //mat4.mul(modelScale, modelScale, scale);
-        //mat4.translate(modelScale, modelScale, vec3.negate(vec3.create(), this.modelCenter));
-
         gl.uniform1i(this.programInfo.uniformLocations.colorAccumulationType, settings.accumulationMethod());
         const matrix = mat4.create();
         //mat4.multiply(matrix, this.modelViewMatrix, modelScale);

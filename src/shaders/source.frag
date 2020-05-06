@@ -35,6 +35,8 @@ const float resolution = 0.1;
 // Volume dimension
 const vec3 volume_dim = vec3(244, 124, 257);
 
+const vec3 light_color = vec3(1.0, 0.0, 0.0);
+
 
 uniform float uDepth;
 uniform sampler2D uTransferFunction;
