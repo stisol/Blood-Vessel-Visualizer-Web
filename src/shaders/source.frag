@@ -76,7 +76,7 @@ float calculateAmbientOcclusionCoeff(vec3 hit) {
     float ambientOcclusion = 0.0;
     const int ambientOcclusionIterations = 64;
     for(int i = 0; i <= ambientOcclusionIterations; ++i) {
-        float z = rand(vec2(0.0, i)) * float(i) / float(ambientOcclusionIterations) + (1.0 - float(i) / float(ambientOcclusionIterations));
+        float z = rand(vec2(0.0, i));
         float r = sqrt(1.0 - z*z);
         float theta = (rand(vec2(z, i)) * 2.0 - 1.0) * 3.1415;
         float x = r * cos(theta);
@@ -103,8 +103,8 @@ float calculateShadowCoeff(vec3 hit, vec3 ray_dir, float start, float end, float
     vec3 texSpaceRay = (inverseScale * vec4(ray, 1.0)).xyz;
     vec3 texSpaceRayDir = (inverseScale * vec4(ray_dir, 1.0)).xyz;
     vec3 norm = get_normal(texSpaceRay);
-    ray += norm * 0.01;
-    texSpaceRay += norm * 0.01;
+    ray = clamp(ray + norm * 0.01, vec3(-1.0), vec3(1.0));
+    texSpaceRay = clamp(texSpaceRay + norm * 0.01, vec3(-1.0), vec3(1.0));
 
     
     for(float t = start+step_size; t < end; t+=step_size) {
@@ -215,14 +215,14 @@ void main() {
         hit.x = max(hit.x, 0.0);
 
         float hit_light = calculateShadowCoeff(color_hit, light_dir, hit.x, hit.y, dt)*0.7;
-        float ambient = calculateAmbientOcclusionCoeff(color_hit) * 0.7 + 0.3;
+        float ambient = calculateAmbientOcclusionCoeff(color_hit) * 0.5 + 0.5;
         color.rgb *= (hit_light + 0.3) * ambient;
         //color.rgb *= ambient;
     } else {
     }
 
     gl_FragDepth = gl_DepthRange.far;
-    if(color.a > 0.99) {
+    if(color.a >= 0.95) {
         vec4 clip_coord = uProjectionMatrix * vec4(color_hit, 1.0);
         float depth_traced = clip_coord.z / clip_coord.w;
             float far=gl_DepthRange.far; float near=gl_DepthRange.near;

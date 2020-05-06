@@ -69,7 +69,7 @@ export default class MainView implements View {
         this.renderTarget.bindFramebuffer();
 
         gl.enable(gl.CULL_FACE);
-        gl.cullFace(gl.BACK);
+        gl.cullFace(gl.FRONT);
         gl.viewport(0, 0, this.renderTarget.getWidth(), this.renderTarget.getHeight());
 
         const zNear = 0.1;
@@ -88,16 +88,17 @@ export default class MainView implements View {
         const eye4 = vec4.transformMat4(vec4.create(), vec4.fromValues(0.0, 0.0, 0.0, 1.0), mat4.invert(mat4.create(), this.modelViewMatrix));
         const eye = vec3.fromValues(eye4[0], eye4[1], eye4[2]);
 
+        const scale = loadedData.scale;
+
         const lightTransform = settings.lightTransform();
-        const lightPos = vec3.fromValues(0.0, 0.0, 1.0);
+        const lightPos = vec3.fromValues(0.0, 0.0, settings.lightDistance());
         vec3.transformMat4(lightPos, lightPos, lightTransform);
-        vec3.add(lightPos, lightPos, vec3.fromValues(0.5, 0.5, 0.5));
+        vec3.add(lightPos, lightPos, vec3.fromValues(0.0, 0.0, 0.0));
         
         gl.useProgram(this.programInfo.program);
         gl.uniform3fv(this.programInfo.uniformLocations.eyePos, eye);
         gl.uniform3fv(this.programInfo.uniformLocations.lightPosition, lightPos);
         
-        const scale = loadedData.scale;
         const boxMin = vec3.transformMat4(vec3.create(), vec3.fromValues(-1.0,-1.0,-1.0), scale);
         const boxMax = vec3.transformMat4(vec3.create(), vec3.fromValues(1.0, 1.0, 1.0), scale);
         gl.uniform3fv(this.programInfo.uniformLocations.boxMin, boxMin);

@@ -18,6 +18,8 @@ export default class Camera {
     private invertY: boolean;
     private disableRoll: boolean;
 
+    private keyPressMap: {[key: string]: boolean} = {};
+
     public constructor(target: vec3, canvas: HTMLCanvasElement, radius = 4.0, invertY = false, disableRoll = false) {
         this.target = target;
 
@@ -27,9 +29,15 @@ export default class Camera {
             .mouseup(this.setMouseDown.bind(this, false))
             .mouseleave(this.setMouseDown.bind(this, false))
             .mousemove(this.onMouseMove.bind(this));
+
+        
         
         // But JQuery is also really bad at scroll wheels.
         canvas.onwheel = this.onMouseScroll.bind(this);
+        //document.onkeypress = this.onKeyPress.bind(this);
+        document.onkeydown = document.onkeyup = this.mapKeys.bind(this);
+        document.addEventListener("visibilitychange", this.onBlur.bind(this));
+        window.blur = this.onBlur.bind(this);
 
         this.transform = mat4.create();
         mat4.translate(this.transform, this.transform, vec3.fromValues(0.0, 0.0, -radius));
@@ -42,6 +50,11 @@ export default class Camera {
     }
 
     public isUpdated(): boolean {
+        if(document.hasFocus()) {
+            this.onKeyPress();
+        } else {
+            this.keyPressMap = {};
+        }
         const v = this.updated;
         this.updated = false;
         return v;
@@ -70,12 +83,51 @@ export default class Camera {
         this.zoom(-Math.sign(ev.deltaY) * 0.5);
     }
 
+    private onKeyPress(): void {
+        
+        if(this.keyPressMap['w'] || this.keyPressMap['arrowup'] ) {
+            this.move(0.0, 0.0, 1.0);
+        }
+        if(this.keyPressMap['s'] || this.keyPressMap['arrowdown']) {
+            this.move(0.0, 0.0, -1.0);
+        }
+        if(this.keyPressMap['a'] || this.keyPressMap['arrowleft']) {
+            this.move(1.0, 0.0, 0.0);
+        }
+        if(this.keyPressMap['d'] || this.keyPressMap['arrowright']) {
+            this.move(-1.0, 0.0, 0.0);
+        }
+        if(this.keyPressMap[' ']) {
+            this.move(0.0, -1.0, 0.0);
+        }
+        if(this.keyPressMap['shift']) {
+            this.move(0.0, 1.0, 0.0);
+        }
+    }
+
+    private onBlur(): void {
+        this.keyPressMap = {};
+    }
+
+    private mapKeys(ev: KeyboardEvent): void {
+        console.log(ev);
+        ev = ev || event;
+        this.keyPressMap[ev.key.toLocaleLowerCase()] = ev.type == 'keydown';
+    }
+
+    private move(x: number, y: number, z: number): void {
+        const direction = vec4.fromValues(x, y, z, 0.0);
+        vec4.transformMat4(direction, direction, mat4.invert(mat4.create(), this.transform));
+        const direction3 = vec3.fromValues(direction[0], direction[1], direction[2]);
+        mat4.translate(this.transform, this.transform, vec3.scale(direction3, direction3, 1/60.0));
+        this.updated = true;
+    }
+
     public rotate(dx: number, dy: number): void {
         if(dx == this.lastMousePos[0] && dy == this.lastMousePos[1]) return;
         /*this.theta = (this.theta + dTheta) % (Math.PI * 2);
         this.phi = Math.max(0, Math.min(Math.PI, this.phi + dPhi));
         this.updated = true;*/
-
         const va = this.arcballVector(this.lastMousePos[0], this.lastMousePos[1]);
         const vb = this.arcballVector(dx, dy);
 
