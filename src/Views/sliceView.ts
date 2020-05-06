@@ -1,6 +1,7 @@
 import View from '../view';
 import RenderTarget from '../renderTarget';
 import Settings from '../settings';
+import { Layout } from '../settings';
 import { mat4, vec3, vec4 } from 'gl-matrix';
 import Camera from '../camera';
 import Mesh from '../mesh';
@@ -18,7 +19,6 @@ export default class SliceView implements View {
     // private transferFunctionTexture: WebGLTexture;
     private volumeData: LoadedTextureData;
     private slices: Slice[] = [];
-    private projectionMatrix: mat4 = mat4.create();
     private canvas: HTMLCanvasElement;
     private controlWidth = 0.5;
     private controlHeight = 0.5;
@@ -26,6 +26,7 @@ export default class SliceView implements View {
     private modelCenter: [number, number, number] = [0.5, 0.5, 0.5];
     private mesh3d: Mesh;
     private aspectRatioCache = 1;
+    private layoutCache = Layout.Focus;
     public textureUpdated = false;
 
     public constructor(
@@ -40,24 +41,10 @@ export default class SliceView implements View {
         // this.transferFunction = transferFunction;
         // this.transferFunctionTexture = gl.createTexture() as WebGLTexture;
 
-        this.slices.push(new Slice(gl, [255, 0, 0], 0.0, 0.5, 0.5, 1.0,
-            volumeData.width, volumeData.height));
-        this.slices.push(new Slice(gl, [0, 255, 0], 0.5, 1.0, 0.5, 1.0,
-            volumeData.width, volumeData.depth));
-        this.slices.push(new Slice(gl, [0, 0, 255], 0.5, 1.0, 0.0, 0.5,
-            volumeData.height, volumeData.depth));
-
-        this.mesh3d = new Mesh();
-        const positions = [
-            -1, -1, 0,
-             1, -1, 0,
-             1,  1, 0,
-            -1,  1, 0,
-        ];
-        const faces = [0, 1, 2, 0, 2, 3];
-        const texCoords = [0, 0, 1, 0, 1, 1, 0, 1];
-        this.mesh3d.setPositions(positions, faces);
-        this.mesh3d.setTexturePositions(texCoords);
+        this.slices.push(new Slice(gl, [255, 0, 0], 0, volumeData.width, volumeData.height, 1));
+        this.slices.push(new Slice(gl, [0, 255, 0], 1, volumeData.width, volumeData.depth, 1));
+        this.slices.push(new Slice(gl, [0, 0, 255], 2, volumeData.height, volumeData.depth, 1));
+        this.mesh3d = Slice.mesh(-1, 1, -1, 1);
 
         const shaderProgram = initShaderProgram(gl, vert, frag);
         this.programInfo = new ProgramInfo(gl, shaderProgram);
@@ -103,31 +90,42 @@ export default class SliceView implements View {
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     public render(aspect: number, camera: Camera, settings: Settings, loadedData: LoadedTextureData): void {
+        if (!this.textureUpdated && this.layoutCache == Layout.View3D && !settings.showslices()) return;
+        this.textureUpdated = false;
         const gl = this.gl;
-        this.aspectRatioCache = aspect;
         
         gl.enable(gl.DEPTH_TEST);
         gl.depthFunc(gl.LEQUAL);
         gl.viewport(0, 0, this.renderTarget.getWidth(), this.renderTarget.getHeight());
         gl.useProgram(this.programInfo.program);
-
-        mat4.ortho(this.projectionMatrix, -1.0 * aspect, 1.0, -1.0 / aspect, 1.0, 0.0, 50.0);
         
+        // Layout recalculation
+        if (settings.layout() != this.layoutCache || aspect != this.aspectRatioCache) {
+            this.layoutCache = settings.layout();
+            this.aspectRatioCache = aspect;
+            this.slices.forEach(element => element.updateMesh(this.layoutCache, aspect));
+        }
+
         for (let i = 0; i < this.slices.length; i++) {
-            // 2D slice
+            const identity = mat4.identity(mat4.create());
+            gl.uniformMatrix4fv(this.programInfo.uniformLocations.projectionMatrix, false, identity);
+
             const slice = this.slices[i];
             const c = slice.color;
-            gl.uniformMatrix4fv(this.programInfo.uniformLocations.projectionMatrix, false, this.projectionMatrix);
             gl.uniform1i(this.programInfo.uniformLocations.textureData, 3 + i);
             gl.uniform3f(this.programInfo.uniformLocations.borderColor, c[0], c[1], c[2])
             gl.bindTexture(gl.TEXTURE_2D, slice.getTexture());
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.R16F, slice.w(), slice.h(), 0, gl.RED, gl.FLOAT, slice.getTexCache());
-            slice.getMesh().bindShader(gl, this.programInfo.program);
-            gl.drawElements(gl.TRIANGLES, slice.getMesh().indiceCount(), gl.UNSIGNED_SHORT, 0);
-
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.R16F, slice.w(), slice.h(), 0, gl.RED, gl.FLOAT, slice.getTexCache());            
+            
+            // 2D slices
+            if (this.layoutCache != Layout.View3D) {
+                slice.getMesh().bindShader(gl, this.programInfo.program);
+                gl.drawElements(gl.TRIANGLES, slice.getMesh().indiceCount(), gl.UNSIGNED_SHORT, 0);
+            }
+                
             // 3D planar representation
             if (!settings.showslices()) continue;
-            const perspective = mat4.create(), matrix = mat4.create();
+            const perspective = mat4.create();
             const fieldOfView = 45 * Math.PI / 180, zNear = 0.1, zFar = 40.0;
             if (settings.isOrtographicCamera()) {
                 mat4.ortho(perspective, -1.0, 1.0, -1.0, 1.0, zNear, zFar);
@@ -137,20 +135,19 @@ export default class SliceView implements View {
             }
             const lookat = mat4.copy(mat4.create(), camera.getTransform());
             mat4.translate(lookat, lookat, vec3.negate(vec3.create(), this.modelCenter));
-            //mat4.lookAt(lookat, camera.position(), this.modelCenter, [0.0, 1.0, 0.0]);
 
-            mat4.identity(matrix);
-
+            // Center the slices before offsetting by the slider
+            const matrix = mat4.translate(mat4.create(), mat4.create(), [0.5, 1, 0.5]);
             switch (i) {
                 case 0:
-                    mat4.translate(matrix, matrix, [0, 0, this.controlDepth]);
+                    mat4.translate(matrix, matrix, [0, 0, 2 * this.controlDepth - 1]);
                     break;
                 case 1:
-                    mat4.translate(matrix, matrix, [0, this.controlHeight, 0]);
+                    mat4.translate(matrix, matrix, [0, 2 * this.controlHeight - 1, 0]);
                     mat4.rotateX(matrix, matrix, Math.PI / 2)
                     break;
                 case 2:
-                    mat4.translate(matrix, matrix, [this.controlWidth, 0, 0]);
+                    mat4.translate(matrix, matrix, [2 * this.controlWidth - 1, 0, 0]);
                     mat4.rotateY(matrix, matrix, -Math.PI / 2);
                     mat4.rotateZ(matrix, matrix, Math.PI / 2);
                     mat4.rotateX(matrix, matrix, Math.PI);
@@ -163,9 +160,8 @@ export default class SliceView implements View {
             mat4.multiply(matrix, perspective, matrix);
             
             gl.uniformMatrix4fv(this.programInfo.uniformLocations.projectionMatrix, false, matrix);
-            const mesh = new Slice(gl, [1, 1, 1], 0, 1, 0, 1, slice.w(), slice.h());
-            mesh.getMesh().bindShader(gl, this.programInfo.program);
-            gl.drawElements(gl.TRIANGLES, mesh.getMesh().indiceCount(), gl.UNSIGNED_SHORT, 0);
+            this.mesh3d.bindShader(gl, this.programInfo.program);
+            gl.drawElements(gl.TRIANGLES, this.mesh3d.indiceCount(), gl.UNSIGNED_SHORT, 0);
         }
     }
 
@@ -234,6 +230,8 @@ export default class SliceView implements View {
 }
 
 class Slice {
+    public posId: number;
+    public layout: Layout = Layout.Focus;
     private x1: number;
     private x2: number;
     private y1: number;
@@ -245,16 +243,81 @@ class Slice {
     private texCache: Float32Array = new Float32Array();
     public color: vec3;
 
-    constructor(gl: WebGL2RenderingContext, color: vec3, x1: number, x2: number, y1: number, y2: number, w: number, h: number) {
-        this.x1 = x1;
-        this.x2 = x2;
-        this.y1 = y1;
-        this.y2 = y2;
+    constructor(gl: WebGL2RenderingContext, color: vec3, positionId: number, w: number, h: number, aspect: number) {
+        this.posId = positionId;
         this.texW = w;
         this.texH = h;
         this.color = color;
         this.texture = gl.createTexture() as WebGLTexture;
-        this.mesh = Slice.mesh(x1, x2, y1, y2);
+        [this.x1, this.x2, this.y1, this.y2] =
+            Slice.getPositionsForIdAndLayout(positionId, Layout.Focus, w, h, aspect);
+        this.mesh = Slice.mesh(this.x1, this.x2, this.y1, this.y2);
+    }
+
+    public updateMesh(layout: Layout, aspect: number): void {
+        this.layout = layout;
+        [this.x1, this.x2, this.y1, this.y2] =
+            Slice.getPositionsForIdAndLayout(this.posId, layout, this.texW, this.texH, aspect);
+        this.mesh = Slice.mesh(this.x1, this.x2, this.y1, this.y2);
+    }
+
+    private static getPositionsForIdAndLayout(id: number, layout: Layout, w: number, h: number, aspect: number): [number, number, number, number] {
+        if (layout == Layout.View3D) return [0, 0, 1, 1];
+        let x1, x2, y1, y2;
+        
+        // Default "focus" coordinates
+        switch (id) {
+            case 0: x1 = 0.0, x2 = 0.5, y1 = 0.5, y2 = 1.0; break;
+            case 1: x1 = 0.5, x2 = 1.0, y1 = 0.5, y2 = 1.0; break;
+            case 2: x1 = 0.5, x2 = 1.0, y1 = 0.0, y2 = 0.5; break;
+            default: throw "Unknown slice position ID: " + id;
+        }
+
+        // Quad is a simple scaling difference
+        if (layout == Layout.Quad) {
+            x1 = x1 * 2 - 1, x2 = x2 * 2 - 1;
+            y1 = y1 * 2 - 1, y2 = y2 * 2 - 1;
+        }
+
+        // Adjust for data shape
+        if (w > h) {
+            const ratio = h / w;
+            const height = Math.abs(y2 - y1);
+            const dy = height - height * ratio;
+            y1 += dy / 2, y2 -= dy / 2;
+        } else if (h > w) {
+            const ratio = w / h;
+            const width = Math.abs(x2 - x1);
+            const dx = width - width * ratio;
+            x1 += dx / 2, x2 -= dx / 2;
+        }
+
+        // Adjust for screen aspect ratio
+        if (aspect > 1) {
+            const width = Math.abs(x2 - x1);
+            const dx = width - width / aspect;
+            if (layout == Layout.Focus) {
+                if (id == 0) {
+                    x1 += dx, x2 += dx;
+                }
+                x1 += dx;
+            } else if (layout == Layout.Quad) {
+                x1 += dx / 2, x2 -= dx / 2;
+            }
+        } else if (aspect < 1) {
+            const height = Math.abs(y2 - y1);
+            const dy = height - height * aspect;
+            if (layout == Layout.Focus) {
+                if (id == 2) {
+                    y1 += dy, y2 += dy;
+                }
+                y1 += dy;
+            } else if (layout == Layout.Quad) {
+                y1 += dy / 2, y2 -= dy / 2;
+            }
+        }        
+
+        return [x1, x2, y1, y2];
     }
 
     public hit(x: number, y: number, aspect: number): [number, number] | null {
@@ -288,7 +351,7 @@ class Slice {
     public getTexCache(): Float32Array { return this.texCache; }
     public setTexCache(t: Float32Array): void { this.texCache = t; }
 
-    private static mesh(x1: number, x2: number, y1: number, y2: number): Mesh {
+    public static mesh(x1: number, x2: number, y1: number, y2: number): Mesh {
         const mesh = new Mesh();
         const positions = [
             x1, y1, 0.0,
@@ -321,15 +384,12 @@ class ProgramInfo {
 
 class UniformLocations {
     projectionMatrix: WebGLUniformLocation;
-    //transferFunction: WebGLUniformLocation;
     textureData: WebGLUniformLocation;
     borderColor: WebGLUniformLocation;
 
     constructor(gl: WebGL2RenderingContext, shaderProgram: WebGLShader) {
         this.projectionMatrix =
             gl.getUniformLocation(shaderProgram, "uProjectionMatrix") as WebGLUniformLocation;
-        //this.transferFunction =
-        //    gl.getUniformLocation(shaderProgram, "uTransferFunction") as WebGLUniformLocation;
         this.textureData =
             gl.getUniformLocation(shaderProgram, "textureData") as WebGLUniformLocation;
         this.borderColor =

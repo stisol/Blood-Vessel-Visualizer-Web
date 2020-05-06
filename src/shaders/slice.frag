@@ -10,14 +10,12 @@ out lowp vec4 color;
 
 uniform vec3 borderColor;
 uniform sampler2D textureData;
-//uniform sampler2D uTransferFunction;
 
 void main() {
-    if (texCoord.x <= 0.005 || texCoord.y <= 0.005 || texCoord.x >= 0.995 || texCoord.y >= 0.995) {
+    if (texCoord.x <= 0.01 || texCoord.y <= 0.01 || texCoord.x >= 0.99 || texCoord.y >= 0.99) {
         color = vec4(borderColor, 1.0);
     } else {
         float v = texture(textureData, texCoord).r;
         color = vec4(v, v, v, 1.0);
     }
-	//gl_FragDepth = zDepth / 40.0;
 }
