@@ -28,17 +28,14 @@ export default class Camera {
         this.target = target;
 
         // JQuery is good at automatically creating event handler queues.
+        const wheelHandler = this.onMouseScroll.bind(this);
         $(canvas)
             .mousedown(this.setMouseDown.bind(this, true))
             .mouseup(this.setMouseDown.bind(this, false))
             .mouseleave(this.setMouseDown.bind(this, false))
-            .mousemove(this.onMouseMove.bind(this));
-
+            .mousemove(this.onMouseMove.bind(this))
+            .bind("wheel.zoom", function(e) { wheelHandler(e.originalEvent as WheelEvent); });
         
-        
-        // But JQuery is also really bad at scroll wheels.
-        canvas.onwheel = this.onMouseScroll.bind(this);
-        //document.onkeypress = this.onKeyPress.bind(this);
         document.onkeydown = document.onkeyup = this.mapKeys.bind(this);
         document.addEventListener("visibilitychange", this.onBlur.bind(this));
         window.blur = this.onBlur.bind(this);

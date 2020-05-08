@@ -2,7 +2,7 @@ import View from '../view';
 import RenderTarget from '../renderTarget';
 import Settings from '../settings';
 import { Layout } from '../settings';
-import { mat4, vec3, vec4 } from 'gl-matrix';
+import { mat4, vec3 } from 'gl-matrix';
 import Camera from '../camera';
 import Mesh from '../mesh';
 import vert from "../shaders/slice.vert";
@@ -28,7 +28,7 @@ export default class SliceView implements View {
     private aspectRatioCache = 1;
     private layoutCache = Layout.Focus;
     public textureUpdated = false;
-
+    
     public constructor(
         gl: WebGL2RenderingContext,
         transferFunction: TransferFunctionController,
@@ -49,23 +49,45 @@ export default class SliceView implements View {
         const shaderProgram = initShaderProgram(gl, vert, frag);
         this.programInfo = new ProgramInfo(gl, shaderProgram);
 
-        $("#theCanvas").click(this.click.bind(this));
         this.canvas = document.getElementById("theCanvas") as HTMLCanvasElement;
+
+        
+
+        const wheelHandler = this.onMouseScroll.bind(this);
+        $("#theCanvas")
+            .click(this.click.bind(this))
+            .bind("wheel.slice", function(e) {
+                const handled = wheelHandler(e.originalEvent as WheelEvent);
+                if (handled) e.stopImmediatePropagation();
+            });
 
         this.cacheSlices();
     }
 
-    private click(ev: JQuery.ClickEvent): void {
-        const x = ev.clientX, y = ev.clientY;
-        const glx = (x / this.canvas.clientWidth) * 2 - 1;
-        const gly = (1 - y / this.canvas.clientHeight) * 2 - 1;
-        
-        for (let i = 0; i < this.slices.length; i++) {
-            const slice = this.slices[i];
-            const hit = slice.hit(glx, gly);
-            if (hit === null) continue;
+    private onMouseScroll(ev: WheelEvent): boolean {
+        return this.doOnSlice(ev.clientX, ev.clientY, (i: number) => {            
+            const sign = ev.deltaY > 0 ? -1 : 1;
+            switch (i) {
+                case 0:
+                    this.controlDepth += sign / this.volumeData.depth;
+                    this.controlDepth = Math.min(1, Math.max(0, this.controlDepth));
+                    break;
+                case 1:
+                    this.controlHeight += sign / this.volumeData.height;
+                    this.controlHeight = Math.min(1, Math.max(0, this.controlHeight));
+                    break;
+                case 2:
+                    this.controlWidth += sign / this.volumeData.height;
+                    this.controlWidth = Math.min(1, Math.max(0, this.controlWidth));
+                    break;
+            }
+            this.cacheSlices();
+            this.textureUpdated = true;
+        });
+    }
 
-            const hitx = hit[0], hity = hit[1];
+    private click(ev: JQuery.ClickEvent): void {
+        this.doOnSlice(ev.clientX, ev.clientY, (i: number, hitx: number, hity: number) => {            
             switch (i) {
                 case 0:
                     this.controlWidth = hitx;
@@ -79,13 +101,28 @@ export default class SliceView implements View {
                     this.controlHeight = hitx;
                     this.controlDepth = hity;
                     break;
-                default:
-                    console.warn("No click handler for slice #" + i);
             }
             this.cacheSlices();
             this.textureUpdated = true;
-            break;
+        });
+    }
+
+    /// Finds the slice for the given x,y coordinates and calls the given
+    /// function with the relative coordinates clicked. Returns a boolean
+    /// indicating whether or not a slice was clicked.
+    private doOnSlice(x: number, y: number, fun: (i: number, x: number, y: number) => void): boolean {
+        const glx = (x / this.canvas.clientWidth) * 2 - 1;
+        const gly = (1 - y / this.canvas.clientHeight) * 2 - 1;
+        
+        for (let i = 0; i < this.slices.length; i++) {
+            const slice = this.slices[i];
+            const hit = slice.hit(glx, gly);
+            if (hit === null) continue;
+
+            fun(i, hit[0], hit[1]);
+            return true;
         }
+        return false;
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
