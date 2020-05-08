@@ -1,5 +1,5 @@
 import setupPicker from "./picker";
-import { vec3, mat4 } from "gl-matrix";
+import { vec3, mat4, quat, mat3 } from "gl-matrix";
 import createSphereMesh from "./meshes/sphereMesh";
 
 import viewVert from "./shaders/lightPreview.vert";
@@ -193,6 +193,10 @@ class LightSetting extends Setting {
     private elem: HTMLCanvasElement;
     private lightTransform: mat4;
 
+    private modelViewMatrix = mat4.create();
+
+    private draw?: () => void;
+
     constructor(sidebar: HTMLDivElement, titleText: string | null) {
         super(sidebar, titleText);
 
@@ -204,7 +208,7 @@ class LightSetting extends Setting {
         this.container.appendChild(this.elem);
 
         this.lightTransform = mat4.create();
-
+        
         
         const camera = new Camera([0.0, 0.0, 0.0], this.elem, 0.0, true, true, true, true);
 
@@ -244,8 +248,24 @@ class LightSetting extends Setting {
 
         const line = createLineMesh(0.025, -1.0);
 
-        const draw = (lTransform: mat4): void => {
+        const createRotationMatrix = (): mat4 => {
+            const modelViewMatrix = mat4.create();
 
+            mat4.mul(modelViewMatrix, camera.getTransform(), modelViewMatrix);
+
+            //modelViewMatrix = mat4.copy(mat4.create(), camera.getTransform());
+            mat4.rotateX(modelViewMatrix, modelViewMatrix, Math.PI);
+            
+            const inverse = mat4.invert(mat4.create(), modelViewMatrix);
+            this.lightTransform = inverse;
+            return inverse;
+        }
+
+        this.draw = (): void => {
+            const lTransform = mat4.create();
+            mat4.mul(lTransform, this.modelViewMatrix, createRotationMatrix());
+            mat4.scale(lTransform, lTransform, vec3.fromValues(-1.0, 1.0, 1.0));
+            
             const lightPosition = vec3.fromValues(0.0, 0, 1.0);
             vec3.transformMat4(lightPosition, lightPosition, mat4.mul(mat4.create(), model, lTransform));
 
@@ -287,68 +307,15 @@ class LightSetting extends Setting {
             gl.uniformMatrix4fv(lineInfo.uniformLocations.projectionMatrix, false, newTransform);
             line.bindShader(gl, lineInfo.program);
             gl.drawElements(gl.TRIANGLES, line.indiceCount(), gl.UNSIGNED_SHORT, 0.0);*/
-        }
+        };
 
-        const createRotationMatrix = (): mat4 => {
-            let modelViewMatrix = mat4.create();
-
-            modelViewMatrix = mat4.copy(mat4.create(), camera.getTransform());
-            mat4.rotateX(modelViewMatrix, modelViewMatrix, Math.PI);
-            
-            const inverse = mat4.invert(mat4.create(), modelViewMatrix);
-            
-            return inverse;
-        }
-        const lineTransform = createRotationMatrix();
-        this.lightTransform = lineTransform;
-        draw(lineTransform);
+        this.draw();
 
         camera.setOnChange((): void => {
-            const mat = createRotationMatrix();
-            this.lightTransform = mat;
-            draw(mat);
+            if(this.draw == null) return; 
+            this.draw();
             this.updated = true;
         })
-/*
-        let doClick = false;
-
-        this.elem.addEventListener('mousedown', (event: MouseEvent) => {
-            doClick = true;
-        });
-
-        this.elem.addEventListener('click', (event: MouseEvent) => {
-
-            //if(doClick) {
-                const rotation = createRotationMatrix(event.clientX, event.clientY);
-                const modelViewMatrix = mat4.create();
-                const eye = camera.position();
-                mat4.lookAt(modelViewMatrix, [0.0, 0.0, 0.0], eye, [0.0, 1.0, 0.0]);
-                mat4.mul(this.lightTransform, modelViewMatrix, rotation);
-                this.lightTransform = rotation;
-                draw(rotation);
-                this.updated = true;
-            //}
-
-        });*/
-        /*
-        this.elem.addEventListener('mousemove', (event: MouseEvent) => {
-            /*const qRotation = quat.create();
-            quat.fromMat3(qRotation, rotation);
-            mat4.fromRotationTranslation(lineTransform, qRotation, [0.0, 0.0, 0.0]);/
-            const rotation = createRotationMatrix(event.clientX, event.clientY);
-            this.lightTransform = rotation;
-            this.updated = true;
-            draw(rotation);
-            //doClick = false;
-        });
-
-        this.elem.addEventListener('mouseleave', () => {
-
-
-
-            draw(this.lightTransform);
-        });*/
-        // TODO: Draw light spec
     }
     
     public getHtml(): HTMLElement {
@@ -356,7 +323,14 @@ class LightSetting extends Setting {
     }
 
     public value(): mat4 {
+        console.log(this.lightTransform);
         return mat4.rotateX(mat4.create(), this.lightTransform, Math.PI);
+    }
+    
+    multiplyLightTransform(rotation: quat): void {
+        this.modelViewMatrix = mat4.fromQuat(mat4.create(), rotation);
+        if(this.draw == null) return;
+        this.draw();
     }
 }
 
@@ -435,5 +409,17 @@ export default class Settings {
             case "2": return Layout.Quad;
             default: throw "Unknown layout type " + this.settings["layout"].value();
         }
+    }
+
+    public multiplyLightTransform(transform: mat4): void {
+        const ltransform = mat3.create();
+        mat3.fromMat4(ltransform, transform);
+
+        const rotationQuat = quat.create();
+        quat.fromMat3(rotationQuat, ltransform);
+        //quat.normalize(rotationQuat, rotationQuat);
+
+        const light = this.settings["light"] as LightSetting;
+        light.multiplyLightTransform(rotationQuat);
     }
 }
