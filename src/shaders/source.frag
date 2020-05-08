@@ -78,7 +78,7 @@ float calculateAmbientOcclusionCoeff(vec3 hit) {
     float ambientOcclusion = 0.0;
     const int ambientOcclusionIterations = 64;
     for(int i = 0; i <= ambientOcclusionIterations; ++i) {
-        float z = rand(vec2(0.0, i));
+        float z = sqrt(rand(vec2(0.0, i)));
         float r = sqrt(1.0 - z*z);
         float theta = (rand(vec2(z, i)) * 2.0 - 1.0) * 3.1415;
         float x = r * cos(theta);
