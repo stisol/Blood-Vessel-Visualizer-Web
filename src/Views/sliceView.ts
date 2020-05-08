@@ -57,8 +57,8 @@ export default class SliceView implements View {
 
     private click(ev: JQuery.ClickEvent): void {
         const x = ev.clientX, y = ev.clientY;
-        const glx = (x / this.canvas.width) * 2 - 1;
-        const gly = (1 - y / this.canvas.height) * 2 - 1;
+        const glx = (x / this.canvas.clientWidth) * 2 - 1;
+        const gly = (1 - y / this.canvas.clientHeight) * 2 - 1;
         
         for (let i = 0; i < this.slices.length; i++) {
             const slice = this.slices[i];
@@ -321,15 +321,6 @@ class Slice {
     }
 
     public hit(x: number, y: number): [number, number] | null {
-        // const proj = mat4.create();
-        // mat4.ortho(proj, -1.0 * aspect, 1.0, -1.0 / aspect, 1.0, 0.0, 50.0);
-
-        // const v1 = vec4.create(), v2 = vec4.create();
-        // vec4.transformMat4(v1, [this.x1, this.y1, 1, 1], proj);
-        // vec4.transformMat4(v2, [this.x2, this.y2, 1, 1], proj);
-
-        // const x1 = v1[0], y1 = v1[1], x2 = v2[0], y2 = v2[1];
-
         const x1 = this.x1, y1 = this.y1, x2 = this.x2, y2 = this.y2;
         const hit = x1 < x && x < x2 && y1 < y && y < y2;
         if (!hit) return null;
