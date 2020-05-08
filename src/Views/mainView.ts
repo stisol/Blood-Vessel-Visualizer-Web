@@ -103,6 +103,8 @@ export default class MainView implements View {
         gl.uniform3fv(this.programInfo.uniformLocations.boxMin, boxMin);
         gl.uniform3fv(this.programInfo.uniformLocations.boxMax, boxMax);
 
+        gl.uniform1i(this.programInfo.uniformLocations.lowQuality, this.paused ? 0 : 1);
+
         gl.uniform1i(this.programInfo.uniformLocations.colorAccumulationType, settings.accumulationMethod());
         const matrix = mat4.create();
         //mat4.multiply(matrix, this.modelViewMatrix, modelScale);
@@ -190,7 +192,8 @@ export default class MainView implements View {
             this.prePauseRes = [w, h];
             
             // Reset resolution to max if needed and render 1 last frame
-            const needAnotherFrame = this.maxResolutionWidth != w || this.maxResolutionHeight != h;
+            //const needAnotherFrame = this.maxResolutionWidth != w || this.maxResolutionHeight != h;
+            const needAnotherFrame = true;
             if (needAnotherFrame) {
                 this.renderTarget.resize(this.maxResolutionWidth, this.maxResolutionHeight);
             }
@@ -252,6 +255,7 @@ class UniformLocations {
     lightPosition: WebGLUniformLocation;
     boxMin: WebGLUniformLocation;
     boxMax: WebGLUniformLocation;
+    lowQuality: WebGLUniformLocation;
 
     constructor(gl: WebGL2RenderingContext, shaderProgram: WebGLShader) {        
         this.projectionMatrix = 
@@ -278,5 +282,7 @@ class UniformLocations {
             gl.getUniformLocation(shaderProgram, "box_min") as WebGLUniformLocation;
         this.boxMax = 
             gl.getUniformLocation(shaderProgram, "box_max") as WebGLUniformLocation;
+        this.lowQuality = 
+            gl.getUniformLocation(shaderProgram, "lowQuality") as WebGLUniformLocation;
     }
 }

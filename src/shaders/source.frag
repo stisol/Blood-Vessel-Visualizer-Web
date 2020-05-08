@@ -23,15 +23,17 @@ uniform mat4 uProjectionMatrix;
 uniform vec3 box_min;
 uniform vec3 box_max;
 
-const vec3 clipPlanePos = vec3(0.5, 0.0, 0.0);
+const vec3 clipPlanePos = vec3(0.0, 0.0, 0.0);
 const vec3 clipPlaneNormal = vec3(1.0, 0.0, 0.0);
 
 uniform mat4 uScaleMatrix;
+
+uniform bool lowQuality; 
 //const vec3 lightPos = vec3(4.0, 2.0, 0.5);
 
 // TODO: Make these uniform
 // value between (0.0, 1.0] that defines the step resoultion based on size
-const float resolution = 0.1;
+float resolution = 0.05;
 // Volume dimension
 const vec3 volume_dim = vec3(244, 124, 257);
 
@@ -109,7 +111,7 @@ float calculateShadowCoeff(vec3 hit, vec3 ray_dir, float start, float end, float
     
     for(float t = start+step_size; t < end; t+=step_size) {
         float d = dot(ray - clipPlanePos, clipPlaneNormal);
-        if(d < 0.0 || true) {
+        if(d < 0.0) {
             float val = texture(textureData, texSpaceRay/2.0+0.5).r;
             float t_alpha = texture(uTransferFunction, vec2(val, 0.5)).a;
             t_alpha = 1.0 - pow(1.0 - t_alpha, resolution);
@@ -136,7 +138,7 @@ vec3 raymarch(in vec3 ray, in vec3 ray_dir, in float start, in float end, in flo
     for(float t = start; t < end; t += step_size) {
         
         float d = dot(ray - clipPlanePos, clipPlaneNormal);
-        if(d < 0.0 || true) {
+        if(d < 0.0) {
             // TODO: Make the data uniform and not dependent on max-size
             float val = texture(textureData, texSpaceRay/2.0+0.5).r;
 
@@ -193,10 +195,14 @@ void main() {
     // Ignore if behind view
     hit.x = max(hit.x, 0.0);
 
+    if(lowQuality) {
+        resolution = 0.2;
+    }
     
 	// Compute optimal step size
 	vec3 dt_vec = 1.0 / (volume_dim * abs(ray_dir));
 	float dt = min(dt_vec.x, min(dt_vec.y, dt_vec.z)) * resolution;
+
 
     vec3 ray = transformed_eye + ray_dir * hit.x;
 
@@ -210,13 +216,23 @@ void main() {
         if (hit.x > hit.y) {
             return;
         }
+        if(!lowQuality || true) {
+            // Ignore if behind view
+            hit.x = max(hit.x, 0.0);
 
-        // Ignore if behind view
-        hit.x = max(hit.x, 0.0);
+            float hit_light = calculateShadowCoeff(color_hit, light_dir, hit.x, hit.y, dt)*0.7;
+            float ambient = calculateAmbientOcclusionCoeff(color_hit) * 0.5 + 0.5;
+            color.rgb *= (hit_light + 0.3) * ambient;
+        } 
+        else {
 
-        float hit_light = calculateShadowCoeff(color_hit, light_dir, hit.x, hit.y, dt)*0.7;
-        float ambient = calculateAmbientOcclusionCoeff(color_hit) * 0.5 + 0.5;
-        color.rgb *= (hit_light + 0.3) * ambient;
+            mat4 inverseScale = inverse(uScaleMatrix);
+            vec3 texSpaceRayDir = (inverseScale * vec4(color_hit, 1.0)).xyz;
+            vec3 normal = get_normal(texSpaceRayDir);
+            float diff = max(dot(normal, light_dir), 0.0);
+            color.rgb *= diff+0.3;
+        }
+
         //color.rgb *= ambient;
     } else {
     }

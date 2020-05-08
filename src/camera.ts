@@ -17,10 +17,14 @@ export default class Camera {
 
     private invertY: boolean;
     private disableRoll: boolean;
+    private disableZoom: boolean;
+    private disableMovement: boolean;
 
     private keyPressMap: {[key: string]: boolean} = {};
 
-    public constructor(target: vec3, canvas: HTMLCanvasElement, radius = 4.0, invertY = false, disableRoll = false) {
+    private onChange?: (updatedMatrix: mat4) => void;
+
+    public constructor(target: vec3, canvas: HTMLCanvasElement, radius = 4.0, invertY = false, disableRoll = false, disableZoom = false, disableMovement = false) {
         this.target = target;
 
         // JQuery is good at automatically creating event handler queues.
@@ -47,6 +51,9 @@ export default class Camera {
 
         this.invertY = invertY;
         this.disableRoll = disableRoll;
+        this.disableZoom = disableZoom;
+        this.disableMovement = disableMovement;
+
     }
 
     public isUpdated(): boolean {
@@ -84,7 +91,6 @@ export default class Camera {
     }
 
     private onKeyPress(): void {
-        
         if(this.keyPressMap['w'] || this.keyPressMap['arrowup'] ) {
             this.move(0.0, 0.0, 1.0);
         }
@@ -116,11 +122,20 @@ export default class Camera {
     }
 
     private move(x: number, y: number, z: number): void {
+        if(this.disableMovement) return;
         const direction = vec4.fromValues(x, y, z, 0.0);
         vec4.transformMat4(direction, direction, mat4.invert(mat4.create(), this.transform));
         const direction3 = vec3.fromValues(direction[0], direction[1], direction[2]);
         mat4.translate(this.transform, this.transform, vec3.scale(direction3, direction3, 1/60.0));
         this.updated = true;
+
+        this.doChange();
+    }
+
+    private doChange(): void {
+        if(this.onChange != null) {
+            this.onChange(this.transform);
+        }
     }
 
     public rotate(dx: number, dy: number): void {
@@ -144,14 +159,19 @@ export default class Camera {
         }
 
         this.updated = true;
+
+        this.doChange();
     }
 
     public zoom(distance: number): void {
+        if(this.disableZoom) return;
         this.radius = Math.max(0, this.radius - distance);
         const translation = mat4.create();
         mat4.translate(translation, translation, vec3.fromValues(0.0, 0.0, distance));
         mat4.mul(this.transform, translation, this.transform);
         this.updated = true;
+
+        this.doChange();
     }
 
     public position(): vec3 {
@@ -189,5 +209,9 @@ export default class Camera {
             vec3.normalize(p, p); 
         }
         return p;
+    }
+
+    public setOnChange(onChange: (change: mat4) => void): void {
+        this.onChange = onChange;
     }
 }

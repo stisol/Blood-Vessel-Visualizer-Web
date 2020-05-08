@@ -206,7 +206,7 @@ class LightSetting extends Setting {
         this.lightTransform = mat4.create();
 
         
-        const camera = new Camera([0.0, 0.0, 0.0], this.elem, 0.0, true, true);
+        const camera = new Camera([0.0, 0.0, 0.0], this.elem, 0.0, true, true, true, true);
 
         const gl = this.elem.getContext("webgl2");
         if (gl === null) {
@@ -289,54 +289,27 @@ class LightSetting extends Setting {
             gl.drawElements(gl.TRIANGLES, line.indiceCount(), gl.UNSIGNED_SHORT, 0.0);*/
         }
 
-        const createRotationMatrix = (dx: number, dy: number): mat4 => {
-            const rect = this.elem.getBoundingClientRect();
-            const x = (dx - rect.left) / 270.0 * 2.0 - 1.0;
-            const y = (dy - rect.top) / 270.0 * 2.0 - 1.0;
-            const direction = vec3.fromValues(x, y, 0.0);
-            const projectionMatrix = mat4.create();
-
+        const createRotationMatrix = (): mat4 => {
             let modelViewMatrix = mat4.create();
 
             modelViewMatrix = mat4.copy(mat4.create(), camera.getTransform());
             mat4.rotateX(modelViewMatrix, modelViewMatrix, Math.PI);
-            //const trans = mat4.translate(modelViewMatrix,modelViewMatrix, vec3.fromValues(0.0, 0.0, 4.0));
             
             const inverse = mat4.invert(mat4.create(), modelViewMatrix);
             
             return inverse;
-
-           /* const inverted = mat4.create();
-            mat4.invert(inverted, modelViewMatrix);
-
-            mat4.mul(projectionMatrix, perspective, model);
-            vec3.transformMat4(direction, direction, projectionMatrix);
-            vec3.normalize(direction, direction);
-            vec3.negate(direction, direction);
-            
-
-            const primaryAxis = direction;
-            let secondAxis = vec3.fromValues(1.0, 0.0, 0.0);
-
-            if(vec3.dot(primaryAxis, secondAxis) == 1.0) {
-                secondAxis = vec3.fromValues(0.0, 0.0, 1.0);
-            }
-            const thirdAxis = vec3.create();
-            vec3.cross(thirdAxis, primaryAxis, secondAxis);
-            vec3.cross(secondAxis, primaryAxis, thirdAxis);
-
-            const rotation = mat4.fromValues(thirdAxis[0], thirdAxis[1], thirdAxis[2], 0.0, secondAxis[0], secondAxis[1], secondAxis[2], 0.0, primaryAxis[0], primaryAxis[1], primaryAxis[2], 0.0, 0.0, 0.0, 0.0, 1.0)
-            
-            mat4.mul(rotation, inverted, rotation);
-
-            const result = mat4.create();
-            mat4.mul(result, modelViewMatrix, rotation);
-            return modelViewMatrix;*/
         }
-        const lineTransform = createRotationMatrix(0.0, 0.0);
+        const lineTransform = createRotationMatrix();
         this.lightTransform = lineTransform;
         draw(lineTransform);
 
+        camera.setOnChange((): void => {
+            const mat = createRotationMatrix();
+            this.lightTransform = mat;
+            draw(mat);
+            this.updated = true;
+        })
+/*
         let doClick = false;
 
         this.elem.addEventListener('mousedown', (event: MouseEvent) => {
@@ -356,17 +329,17 @@ class LightSetting extends Setting {
                 this.updated = true;
             //}
 
-        });
-
+        });*/
+        /*
         this.elem.addEventListener('mousemove', (event: MouseEvent) => {
             /*const qRotation = quat.create();
             quat.fromMat3(qRotation, rotation);
-            mat4.fromRotationTranslation(lineTransform, qRotation, [0.0, 0.0, 0.0]);*/
+            mat4.fromRotationTranslation(lineTransform, qRotation, [0.0, 0.0, 0.0]);/
             const rotation = createRotationMatrix(event.clientX, event.clientY);
             this.lightTransform = rotation;
             this.updated = true;
             draw(rotation);
-            doClick = false;
+            //doClick = false;
         });
 
         this.elem.addEventListener('mouseleave', () => {
@@ -374,7 +347,7 @@ class LightSetting extends Setting {
 
 
             draw(this.lightTransform);
-        });
+        });*/
         // TODO: Draw light spec
     }
     
