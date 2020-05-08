@@ -30,8 +30,8 @@ export default class MainView implements View {
     private maxResolutionWidth: number;
     private maxResolutionHeight: number;
 
-    private reducedResolutionWidth: number;
-    private reducedResolutionHeight: number;
+    private paused = false;
+    private prePauseRes: [number, number];
 
     private transferFunction: TransferFunctionController;
     private transferFunctionTexture: WebGLTexture;
@@ -45,8 +45,7 @@ export default class MainView implements View {
 
         this.maxResolutionWidth = 2048;
         this.maxResolutionHeight = this.maxResolutionWidth;
-        this.reducedResolutionWidth = this.maxResolutionWidth;
-        this.reducedResolutionHeight = this.maxResolutionHeight;
+        this.prePauseRes = [this.maxResolutionWidth, this.maxResolutionHeight];
         this.renderTarget = new RenderTarget(gl, this.maxResolutionWidth, this.maxResolutionHeight);
 
         // Transfer function setup
@@ -178,29 +177,40 @@ export default class MainView implements View {
             this.fpsLog.shift();
         } 
         const avgFps = this.fpsLog.reduce((a, b) => a+b, 0) / fpsLogLength;
-        settings.setFps(Math.round(avgFps).toString());
         
         // Check if it's time to pause rendering.
         const viewUpdated = settingsUpdated || camera.isUpdated();
         if (!viewUpdated && this.lastSettingsUpdate + 500 < Date.now()) {
+            if (this.paused) return false;
+            this.paused = true;
             settings.setFps("Paused");
             
-            // Reset resolution to max if needed and render 1 last frame
-            const needAnotherFrame = this.maxResolutionWidth != this.renderTarget.getWidth() ||
-                this.maxResolutionHeight != this.renderTarget.getHeight();
+            const w = this.renderTarget.getWidth();
+            const h = this.renderTarget.getHeight();
+            this.prePauseRes = [w, h];
             
+            // Reset resolution to max if needed and render 1 last frame
+            const needAnotherFrame = this.maxResolutionWidth != w || this.maxResolutionHeight != h;
             if (needAnotherFrame) {
                 this.renderTarget.resize(this.maxResolutionWidth, this.maxResolutionHeight);
-                
-                // Clear FPS log
-                for (let i = 0; i < this.fpsLog.length; i++)
-                this.fpsLog[i] = optimalFps;
-            }    
+            }
             return needAnotherFrame;
         }
+        settings.setFps(Math.round(avgFps).toString());
 
         // If the view has updated, store the time for later comparison.
         if(viewUpdated) this.lastSettingsUpdate = Date.now();
+
+        // If we were just paused, reset resolution to pre-pause levels
+        let currentWidth: number, currentHeight: number;
+        if (this.paused) {
+            this.paused = false;
+            currentWidth = this.prePauseRes[0];
+            currentHeight = this.prePauseRes[1];
+        } else {
+            currentWidth = this.renderTarget.getWidth();
+            currentHeight = this.renderTarget.getHeight();
+        }
         
         // Check if framerate means a resolution drop should be made.
         const minimumResolutionFactor = 0.2;
@@ -209,12 +219,10 @@ export default class MainView implements View {
 
         let factor = fps / optimalFps;
         factor = Math.round(factor * 10) / 10;         // Round it
-        factor = Math.max(Math.min(factor, 1.0), 0.7); // Cap per-frame change
+        factor = Math.max(Math.min(factor, 1.0), 0.8); // Cap per-frame change
         if(factor < 1.0 && avgFps < optimalFps) {
-            const renderWidth  = Math.round(Math.max(this.renderTarget.getWidth() * factor, minW));
-            const renderHeight = Math.round(Math.max(this.renderTarget.getHeight() * factor, minH));
-            this.reducedResolutionWidth = renderWidth;
-            this.reducedResolutionHeight = renderHeight;
+            const renderWidth  = Math.round(Math.max(currentWidth * factor, minW));
+            const renderHeight = Math.round(Math.max(currentHeight * factor, minH));
             this.renderTarget.resize(renderWidth, renderHeight);
         }
         return true;
