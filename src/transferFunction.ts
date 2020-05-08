@@ -51,18 +51,18 @@ export default class TransferFunctionController {
         this.canvas.onmousedown = this.onMouseDown.bind(this);
         this.canvas.onmouseleave = this.onMouseLeave.bind(this);
 
-        const df = new Color(0, 0, 0);
+        const air = new Color(255, 255, 255);
         const skin = new Color(255, 224, 189);
+        const vessel = new Color(200, 0, 0);
         const bone = new Color(254, 254, 254);
         this.transferFunction = new TransferFunction([
-            [0, 0, df],
-            [0.3, 0, df],
+            [0, 0, air],
+            [0.3, 0, air],
             [0.3, 0.25, skin],
             [0.4, 0.25, skin],
-            [0.4, 0, df],            
-            [0.4, 1, bone],
-            [1.0, 1.0, bone],
-            [1, 0, df],
+            [0.47, 0.5, vessel],
+            [0.47, 1, bone],
+            [1.0, 1.0, bone]
         ]);
 
         this.ctx = this.canvas.getContext("2d") as CanvasRenderingContext2D;
