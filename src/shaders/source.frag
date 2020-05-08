@@ -159,6 +159,7 @@ vec3 raymarch(in vec3 ray, in vec3 ray_dir, in float start, in float end, in flo
 
             if(colorAccumulationType == 0) {
 
+                
                 // Color compositing. Multiplicative
                 color.rgb += (1.0 - color.a) * (val_color.a * val_color.rgb);
                 color.a += (1.0 - color.a) * val_color.a;
@@ -244,12 +245,12 @@ void main() {
     }
 
     gl_FragDepth = gl_DepthRange.far;
-    /*if(color.a >= 0.95) {
+    if(color.a >= 0.95) {
         vec4 clip_coord = uProjectionMatrix * vec4(color_hit, 1.0);
         float depth_traced = clip_coord.z / clip_coord.w;
             float far=gl_DepthRange.far; float near=gl_DepthRange.near;
         gl_FragDepth = ((far - near) * (depth_traced) + near + far) / 2.0;
-    }*/
+    }
     //color = texture(uTransferFunction, vec2(ray_dir.x, 0.5));
     //color.rgb = normal(color_hit);
     //color = vec4(abs(normal(ray - ray_dir*dt)), 1.0);
