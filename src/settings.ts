@@ -269,7 +269,6 @@ class LightSetting extends Setting {
             const lightPosition = vec3.fromValues(0.0, 0, 1.0);
             vec3.transformMat4(lightPosition, lightPosition, mat4.mul(mat4.create(), model, lTransform));
 
-            //console.log("LIGHT:", lightPosition);
             gl.clearColor(0.0, 0.0, 0.0, 1.0);
             gl.clearDepth(1.0);
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);

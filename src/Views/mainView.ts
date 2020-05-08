@@ -140,7 +140,6 @@ export default class MainView implements View {
             const w = this.renderTarget.getWidth();
             const h = this.renderTarget.getHeight();
             this.prePauseRes = [w, h];
-            console.debug("PAUSE: " + w + "x" + h);
             
             // Reset resolution to max if needed and render 1 last frame
             //const needAnotherFrame = this.maxResolutionWidth != w || this.maxResolutionHeight != h;
@@ -178,7 +177,6 @@ export default class MainView implements View {
             const renderHeight = Math.round(Math.max(currentHeight * factor, minH));
             this.renderTarget.resize(renderWidth, renderHeight);
         }
-        console.debug("REND:  " + this.renderTarget.getWidth() + "x" + this.renderTarget.getHeight());
         return true;
     }
 }
