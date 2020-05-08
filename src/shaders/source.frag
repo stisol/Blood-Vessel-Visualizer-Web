@@ -33,7 +33,7 @@ uniform bool lowQuality;
 
 // TODO: Make these uniform
 // value between (0.0, 1.0] that defines the step resoultion based on size
-float resolution = 0.05;
+float resolution = 0.1;
 // Volume dimension
 const vec3 volume_dim = vec3(244, 124, 257);
 
@@ -206,7 +206,7 @@ void main() {
     }
     
 	// Compute optimal step size
-	vec3 dt_vec = 1.0 / (volume_dim * abs(ray_dir));
+	vec3 dt_vec = 1.0 / (volume_dim);
 	float dt = min(dt_vec.x, min(dt_vec.y, dt_vec.z)) * resolution;
 
 
@@ -244,12 +244,12 @@ void main() {
     }
 
     gl_FragDepth = gl_DepthRange.far;
-    if(color.a >= 0.95) {
+    /*if(color.a >= 0.95) {
         vec4 clip_coord = uProjectionMatrix * vec4(color_hit, 1.0);
         float depth_traced = clip_coord.z / clip_coord.w;
             float far=gl_DepthRange.far; float near=gl_DepthRange.near;
         gl_FragDepth = ((far - near) * (depth_traced) + near + far) / 2.0;
-    }
+    }*/
     //color = texture(uTransferFunction, vec2(ray_dir.x, 0.5));
     //color.rgb = normal(color_hit);
     //color = vec4(abs(normal(ray - ray_dir*dt)), 1.0);
