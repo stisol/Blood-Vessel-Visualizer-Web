@@ -127,7 +127,10 @@ export default class SliceView implements View {
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     public render(aspect: number, camera: Camera, settings: Settings, loadedData: LoadedTextureData): void {
-        if (!this.textureUpdated && this.layoutCache == Layout.View3D && !settings.showslices()) return;
+        if (!this.textureUpdated && this.layoutCache == Layout.View3D
+            && !settings.showslices() && settings.layout() == Layout.View3D) {
+            return;
+        }
         this.textureUpdated = false;
         const gl = this.gl;
         
