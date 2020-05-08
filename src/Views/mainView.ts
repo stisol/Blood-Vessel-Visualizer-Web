@@ -180,7 +180,7 @@ export default class MainView implements View {
         
         // Check if it's time to pause rendering.
         const viewUpdated = settingsUpdated || camera.isUpdated();
-        if (!viewUpdated && this.lastSettingsUpdate + 500 < Date.now()) {
+        if (!viewUpdated && this.lastSettingsUpdate + 750 < Date.now()) {
             if (this.paused) return false;
             this.paused = true;
             settings.setFps("Paused");
@@ -188,6 +188,7 @@ export default class MainView implements View {
             const w = this.renderTarget.getWidth();
             const h = this.renderTarget.getHeight();
             this.prePauseRes = [w, h];
+            console.debug("PAUSE: " + w + "x" + h);
             
             // Reset resolution to max if needed and render 1 last frame
             const needAnotherFrame = this.maxResolutionWidth != w || this.maxResolutionHeight != h;
@@ -202,20 +203,19 @@ export default class MainView implements View {
         if(viewUpdated) this.lastSettingsUpdate = Date.now();
 
         // If we were just paused, reset resolution to pre-pause levels
-        let currentWidth: number, currentHeight: number;
         if (this.paused) {
             this.paused = false;
-            currentWidth = this.prePauseRes[0];
-            currentHeight = this.prePauseRes[1];
-        } else {
-            currentWidth = this.renderTarget.getWidth();
-            currentHeight = this.renderTarget.getHeight();
+            this.renderTarget.resize(this.prePauseRes[0], this.prePauseRes[1]);
+            return true;
         }
         
         // Check if framerate means a resolution drop should be made.
         const minimumResolutionFactor = 0.2;
         const minW = this.maxResolutionWidth * minimumResolutionFactor;
         const minH = this.maxResolutionHeight * minimumResolutionFactor;
+        
+        const currentWidth = this.renderTarget.getWidth();
+        const currentHeight = this.renderTarget.getHeight();
 
         let factor = fps / optimalFps;
         factor = Math.round(factor * 10) / 10;         // Round it
@@ -225,6 +225,7 @@ export default class MainView implements View {
             const renderHeight = Math.round(Math.max(currentHeight * factor, minH));
             this.renderTarget.resize(renderWidth, renderHeight);
         }
+        console.debug("REND:  " + this.renderTarget.getWidth() + "x" + this.renderTarget.getHeight());
         return true;
     }
 }
