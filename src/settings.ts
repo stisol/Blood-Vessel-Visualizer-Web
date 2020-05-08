@@ -8,7 +8,7 @@ import viewFrag from "./shaders/lightPreview.frag";
 import lineVert from "./shaders/lightLine.vert";
 import lineFrag from "./shaders/lightLine.frag";
 
-import { initShaderProgram } from "./shader";
+import { initShaderProgram, LoadedTextureData } from "./shader";
 import createLineMesh from "./meshes/lineMesh";
 import Camera from "./camera";
 
@@ -323,7 +323,6 @@ class LightSetting extends Setting {
     }
 
     public value(): mat4 {
-        console.log(this.lightTransform);
         return mat4.rotateX(mat4.create(), this.lightTransform, Math.PI);
     }
     
@@ -342,9 +341,10 @@ export enum Layout {
 
 export default class Settings {
     private settings: {[item: string]: Setting};
-    
 
-    public constructor() {
+    private loadedData: LoadedTextureData;
+
+    public constructor(data: LoadedTextureData) {
         const sidebar = document.getElementById("sidebar") as HTMLDivElement;
 
         this.settings = {
@@ -364,6 +364,8 @@ export default class Settings {
             ]),
             light: new LightSetting(sidebar, "Light position")
         };
+
+        this.loadedData = data;
 
     }
 
@@ -421,5 +423,13 @@ export default class Settings {
 
         const light = this.settings["light"] as LightSetting;
         light.multiplyLightTransform(rotationQuat);
+    }
+
+    public setLoadedData(data: LoadedTextureData): void {
+        this.loadedData = data;
+    }
+
+    public getLoadedData(): LoadedTextureData {
+        return this.loadedData;
     }
 }

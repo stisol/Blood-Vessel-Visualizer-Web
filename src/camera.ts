@@ -1,4 +1,4 @@
-import { vec3, mat4, vec4 } from "gl-matrix";
+import { vec3, mat4, vec4, quat, mat3 } from "gl-matrix";
 import * as $ from "jquery";
 
 export default class Camera {
@@ -189,6 +189,15 @@ export default class Camera {
 
     public getTransform(): mat4 {
         return this.transform;
+    }
+
+    public getRotation(): mat4 {
+        const ltransform = mat3.create();
+        mat3.fromMat4(ltransform, this.transform);
+
+        const rotationQuat = quat.create();
+        quat.fromMat3(rotationQuat, ltransform);
+        return mat4.fromQuat(mat4.create(), rotationQuat);
     }
 
     private arcballVector(x: number, y: number): vec3 {

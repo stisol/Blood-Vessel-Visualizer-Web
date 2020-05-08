@@ -11,6 +11,7 @@ import frag from "../shaders/source.frag";
 import { initShaderProgram, LoadedTextureData } from '../shader';
 import TransferFunctionController from '../transferFunction';
 import Light from '../light';
+import VolumeRenderer from '../renderer/VolumeRenderer';
 
 export default class MainView implements View {
 
@@ -19,10 +20,6 @@ export default class MainView implements View {
 
     private projectionMatrix: mat4 = mat4.create();
     private modelViewMatrix: mat4 = mat4.create();
-
-    private mesh: Mesh = createCubeMesh();
-
-    private programInfo: ProgramInfo;
 
     private deltaTime: number;
     private fpsLog: number[] = [];
@@ -33,12 +30,11 @@ export default class MainView implements View {
     private paused = false;
     private prePauseRes: [number, number];
 
-    private transferFunction: TransferFunctionController;
-    private transferFunctionTexture: WebGLTexture;
-
     private lastSettingsUpdate = 0;
 
     private lights: Light;
+
+    private volumeRenderer: VolumeRenderer;
     
     public constructor(gl: WebGL2RenderingContext, transferFunction: TransferFunctionController) {
         this.gl = gl;
@@ -50,15 +46,11 @@ export default class MainView implements View {
 
         // Transfer function setup
         
-        this.transferFunction = transferFunction;
-        this.transferFunctionTexture = gl.createTexture() as WebGLTexture;
-        
         this.lights = new Light(gl);
 
         this.deltaTime = 0.0;
 
-        const shaderProgram = initShaderProgram(gl, vert, frag);
-        this.programInfo = new ProgramInfo(gl, shaderProgram);
+        this.volumeRenderer = new VolumeRenderer(gl, transferFunction);
     }
 
     // eslint-disable-next-line @typescript-eslint/no-empty-function
@@ -67,8 +59,6 @@ export default class MainView implements View {
         
         this.renderTarget.bindFramebuffer();
 
-        gl.enable(gl.CULL_FACE);
-        gl.cullFace(gl.FRONT);
         gl.viewport(0, 0, this.renderTarget.getWidth(), this.renderTarget.getHeight());
 
         const zNear = 0.1;
@@ -88,61 +78,20 @@ export default class MainView implements View {
         const eye4 = vec4.transformMat4(vec4.create(), vec4.fromValues(0.0, 0.0, 0.0, 1.0), mat4.invert(mat4.create(), this.modelViewMatrix));
         const eye = vec3.fromValues(eye4[0], eye4[1], eye4[2]);
 
-        const scale = loadedData.scale;
-
         const lightTransform = settings.lightTransform();
         const lightPos = vec3.fromValues(0.0, 0.0, settings.lightDistance());
         vec3.transformMat4(lightPos, lightPos, lightTransform);
         vec3.add(lightPos, lightPos, vec3.fromValues(0.0, 0.0, 0.0));
         
-        gl.useProgram(this.programInfo.program);
-        gl.uniform3fv(this.programInfo.uniformLocations.eyePos, eye);
-        gl.uniform3fv(this.programInfo.uniformLocations.lightPosition, lightPos);
-        
-        const boxMin = vec3.transformMat4(vec3.create(), vec3.fromValues(-1.0,-1.0,-1.0), scale);
-        const boxMax = vec3.transformMat4(vec3.create(), vec3.fromValues(1.0, 1.0, 1.0), scale);
-        gl.uniform3fv(this.programInfo.uniformLocations.boxMin, boxMin);
-        gl.uniform3fv(this.programInfo.uniformLocations.boxMax, boxMax);
-
-        gl.uniform1i(this.programInfo.uniformLocations.lowQuality, this.paused ? 0 : 1);
-
-        gl.uniform1i(this.programInfo.uniformLocations.colorAccumulationType, settings.accumulationMethod());
         const matrix = mat4.create();
         //mat4.multiply(matrix, this.modelViewMatrix, modelScale);
         mat4.multiply(matrix, this.projectionMatrix, this.modelViewMatrix);
 
-        gl.uniformMatrix4fv(
-            this.programInfo.uniformLocations.projectionMatrix,
-            false,
-            matrix);
-        gl.uniformMatrix4fv(this.programInfo.uniformLocations.scaleMatrix, false, scale);
-
-            
-        // Check for transfer function update
-        const tf = this.transferFunction;
-        if (tf.transferFunctionUpdated) {
-            const tex = tf.getTransferFunctionTexture();
-            gl.activeTexture(gl.TEXTURE2);
-            gl.bindTexture(gl.TEXTURE_2D, this.transferFunctionTexture);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 256, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, tex);
-        }
-        else {
-            gl.activeTexture(gl.TEXTURE2);
-            gl.bindTexture(gl.TEXTURE_2D, this.transferFunctionTexture);
-        }
-        gl.uniform1i(this.programInfo.uniformLocations.transferFunction, 2);
-
-        gl.uniform1i(this.programInfo.uniformLocations.textureData, 0);
-        gl.uniform1i(this.programInfo.uniformLocations.normalData, 1);
-        gl.uniform1f(this.programInfo.uniformLocations.depth, 0);
-        {
-            this.mesh.bindShader(gl, this.programInfo.program);
-            gl.drawElements(gl.TRIANGLES, this.mesh.indiceCount(), gl.UNSIGNED_SHORT, 0);
-        }
-        gl.disable(gl.CULL_FACE);
+        // Setup and render the volume
+        this.volumeRenderer.setEyePos(eye);
+        this.volumeRenderer.setLightPos(lightPos);
+        this.volumeRenderer.setTransform(matrix);
+        this.volumeRenderer.render(gl, settings);
 
         const faceMatrix = mat4.create();
         const lightMatrix = mat4.create();
