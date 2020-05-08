@@ -111,7 +111,7 @@ float calculateShadowCoeff(vec3 hit, vec3 ray_dir, float start, float end, float
     
     for(float t = start+step_size; t < end; t+=step_size) {
         float d = dot(ray - clipPlanePos, clipPlaneNormal);
-        if(d < 0.0) {
+        if(d < 0.0 || true) {
             float val = texture(textureData, texSpaceRay/2.0+0.5).r;
             float t_alpha = texture(uTransferFunction, vec2(val, 0.5)).a;
             t_alpha = 1.0 - pow(1.0 - t_alpha, resolution);
@@ -135,10 +135,13 @@ vec3 raymarch(in vec3 ray, in vec3 ray_dir, in float start, in float end, in flo
     mat4 inverseScale = inverse(uScaleMatrix);
     vec3 texSpaceRay = (inverseScale * vec4(ray, 1.0)).xyz;
     vec3 texSpaceRayDir = (inverseScale * vec4(ray_dir, 1.0)).xyz;
+
+    float strength = 0.0;
+
     for(float t = start; t < end; t += step_size) {
         
         float d = dot(ray - clipPlanePos, clipPlaneNormal);
-        if(d < 0.0) {
+        if(d < 0.0 || true) {
             // TODO: Make the data uniform and not dependent on max-size
             float val = texture(textureData, texSpaceRay/2.0+0.5).r;
 
@@ -167,10 +170,13 @@ vec3 raymarch(in vec3 ray, in vec3 ray_dir, in float start, in float end, in flo
                 }
                 
             } else {
-                if(length(color.a) < length(val)) {
-                    color.rgba = vec4(val);
-                    color.rgb *= val_color.rgb;
-                    color_hit = ray;
+                if(length(strength) < length(val)) {
+                    if(strength == 0.0) {
+                        color_hit = ray;
+                    }
+                    strength = val;
+                    color.rgb = val_color.rgb * strength;
+                    color.a = val_color.a;
                 }
             }
 
