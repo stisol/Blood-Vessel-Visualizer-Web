@@ -23,7 +23,7 @@ uniform mat4 uProjectionMatrix;
 uniform vec3 box_min;
 uniform vec3 box_max;
 
-const vec3 clipPlanePos = vec3(0.0, 0.0, 0.0);
+const vec3 clipPlanePos = vec3(90.0, 0.0, 0.0);
 const vec3 clipPlaneNormal = vec3(1.0, 0.0, 0.0);
 
 uniform mat4 uScaleMatrix;

@@ -11,6 +11,7 @@ import Camera from "./camera";
 import Settings from "./settings";
 import MinimapView from "./Views/minimapView";
 import { mat4, vec3 } from "gl-matrix";
+import RayCasterController from "./rayCaster";
 
 async function Init(): Promise<void> {
     const canvas = document.querySelector("#theCanvas") as HTMLCanvasElement;
@@ -34,6 +35,7 @@ async function Init(): Promise<void> {
     const renderSlice = new SliceView(gl, transferFunction, renderView.getRenderTarget(), loadedData);
     const camera = new Camera([0.5, 0.5, 0.5], document.getElementById("theCanvas") as HTMLCanvasElement);
     const view = createSquareMesh(-1.0, 1.0);
+    const rayCasterController = new RayCasterController(loadedData, sidebar, settings, camera);
 
     const minimap = new MinimapView(gl, transferFunction);
 
@@ -44,7 +46,7 @@ async function Init(): Promise<void> {
             transform: gl.getUniformLocation(viewProgram, "uTransform")
         },
     };
-    
+
     const renderLoop = (): void => {
         // render to the canvas
         // Setup required OpenGL state for drawing the back faces and
@@ -52,18 +54,21 @@ async function Init(): Promise<void> {
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
 
+        
         const settingsUpdated = settings.isUpdated() || transferFunction.transferFunctionUpdated;
         const sliceUpdated = renderSlice.textureUpdated;
         const newFrame = renderView.updateFps(camera, settings, settingsUpdated);
-        const aspect= canvas.clientWidth / canvas.clientHeight;
+        const aspect = canvas.clientWidth / canvas.clientHeight;
+        rayCasterController.aspect = aspect;
+
         if (newFrame || settingsUpdated || sliceUpdated) {
             renderView.getRenderTarget().bindFramebuffer();
             gl.clearColor(0.0, 0.0, 0.0, 1.0);
             gl.clearDepth(1.0);
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-            renderSlice.render(canvas.clientWidth / canvas.clientHeight, camera, settings, loadedData);
-            renderView.render(canvas.clientWidth / canvas.clientHeight, camera, settings, loadedData);
+            renderSlice.render(aspect, camera, settings, loadedData);
+            renderView.render(aspect, camera, settings, loadedData);
             minimap.getRenderTarget().bindFramebuffer();
             minimap.render(1.0, camera, settings, loadedData);
         }
