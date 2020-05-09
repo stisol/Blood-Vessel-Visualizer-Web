@@ -354,7 +354,8 @@ export default class Settings {
             lightDistance: new SliderSetting(sidebar, "Light distance", 2.0, 0.5, 5.0, 0.05, "lightDistance", "light-distance"),
             accumulationMethod: new SelectSetting(sidebar, "Color accumulation Method", [
                 {value: "0", text: "Accumulate"},
-                {value: "1", text: "Maximum Intensity Projection"}
+                {value: "1", text: "Maximum Intensity Projection"},
+                {value: "2", text: "X-ray (average intensity)"},
             ]),
             layout: new SelectSetting(sidebar, "Layout", [
                 {value: "0", text: "Focus"},

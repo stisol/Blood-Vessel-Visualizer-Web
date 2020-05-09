@@ -170,7 +170,7 @@ vec3 raymarch(in vec3 ray, in vec3 ray_dir, in float start, in float end, in flo
                     break;
                 }
                 
-            } else {
+            } else if(colorAccumulationType == 1) {
                 if(length(strength) < length(val)) {
                     if(strength == 0.0) {
                         color_hit = ray;
@@ -179,12 +179,24 @@ vec3 raymarch(in vec3 ray, in vec3 ray_dir, in float start, in float end, in flo
                     color.rgb = val_color.rgb * strength;
                     color.a = val_color.a;
                 }
+            } else {
+                if(val > 0.0) {
+                    if(strength == 0.0) {
+                        color_hit = ray;
+                    }
+                    strength += 1.0;
+                    color += val;
+                }
             }
 
         }
 
         ray += ray_dir * step_size;
         texSpaceRay += texSpaceRayDir * step_size;
+    }
+    if(colorAccumulationType == 2) {
+        color /= strength;
+        if(color.a > 0.0) color.a = 1.0;
     }
 
     return color_hit;
