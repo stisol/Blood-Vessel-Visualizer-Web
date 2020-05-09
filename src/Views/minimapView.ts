@@ -120,7 +120,7 @@ export default class MinimapView implements View {
         const cameraZoom = camera.getZoomFactor();
         const cameraOffset = camera.getTranslation();
         const nOffset = vec3.negate(vec3.create(), cameraOffset)
-        const scaleVector =  vec3.fromValues(1/cameraZoom, 1/cameraZoom, 1/cameraZoom);
+        const scaleVector =  vec3.fromValues(1/cameraZoom * this.viewAspect, 1/cameraZoom, 1/cameraZoom);
         const transform = mat4.create();
         mat4.scale(transform, transform, scaleVector);
 
