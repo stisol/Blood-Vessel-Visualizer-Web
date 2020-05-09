@@ -2,10 +2,6 @@ import { vec3, mat4, vec4, quat, mat3 } from "gl-matrix";
 import * as $ from "jquery";
 
 export default class Camera {
-    private theta = 0.0;
-    private phi = Math.PI / 2.0;
-    private radius = 4.0;
-    private target: vec3;
 
     private mouseDown = false;
     private lastMousePos = [0.0, 0.0];
@@ -24,8 +20,9 @@ export default class Camera {
 
     private onChange?: (updatedMatrix: mat4) => void;
 
+    private zoomDistance = 0.0;
+
     public constructor(target: vec3, canvas: HTMLCanvasElement, radius = 4.0, invertY = false, disableRoll = false, disableZoom = false, disableMovement = false) {
-        this.target = target;
 
         // JQuery is good at automatically creating event handler queues.
         const wheelHandler = this.onMouseScroll.bind(this);
@@ -43,7 +40,6 @@ export default class Camera {
         this.transform = mat4.create();
         mat4.translate(this.transform, this.transform, vec3.fromValues(0.0, 0.0, -radius));
             
-        this.radius = radius;
         this.canvas = canvas;
 
         this.invertY = invertY;
@@ -160,12 +156,37 @@ export default class Camera {
         this.doChange();
     }
 
+    private clamp(x: number, min: number, max: number): number {
+        return Math.max(min, Math.min(max, x));
+    }
+
     public zoom(distance: number): void {
         if(this.disableZoom) return;
-        this.radius = Math.max(0, this.radius - distance);
-        const translation = mat4.create();
+
+        let zoomFactor = 1.1;
+        if(distance < 0.0) {
+            zoomFactor = 1.0/1.1;
+        }
+
+        const zoom = vec3.fromValues(zoomFactor, zoomFactor, zoomFactor);
+        
+        const scaling = mat4.getScaling(vec3.create(), this.transform);
+
+        vec3.mul(zoom, zoom ,scaling);
+        zoom[0] = this.clamp(zoom[0], 1.0, 32.0);
+        zoom[1] = this.clamp(zoom[1], 1.0, 32.0);
+        zoom[2] = this.clamp(zoom[2], 1.0, 32.0);
+        this.zoomDistance = zoom[0];
+        /*const translation = mat4.create();
         mat4.translate(translation, translation, vec3.fromValues(0.0, 0.0, distance));
-        mat4.mul(this.transform, translation, this.transform);
+        mat4.mul(this.transform, translation, this.transform);*/
+        const scaleMatrix = mat4.create();
+
+        mat4.scale(scaleMatrix, scaleMatrix, vec3.inverse(vec3.create(), scaling));
+        mat4.scale(scaleMatrix, scaleMatrix, zoom);
+
+        mat4.mul(this.transform, this.transform, scaleMatrix);
+
         this.updated = true;
 
         this.doChange();
@@ -176,13 +197,22 @@ export default class Camera {
     }
 
     public getRotation(): mat4 {
-        const ltransform = mat3.create();
-        mat3.fromMat4(ltransform, this.transform);
-
         const rotationQuat = quat.create();
-        quat.fromMat3(rotationQuat, ltransform);
+        mat4.getRotation(rotationQuat, this.transform);
         return mat4.fromQuat(mat4.create(), rotationQuat);
     }
+
+    public getZoomFactor(): number {
+        return this.zoomDistance;
+    }
+
+    public getTranslation(): vec3 {
+        return mat4.getTranslation(vec3.create(), this.transform);
+    }
+
+    /*public getScale(): mat4 {
+
+    }*/
 
     private arcballVector(x: number, y: number): vec3 {
         x /= $(this.canvas).width() || 1.0;

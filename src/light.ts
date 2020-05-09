@@ -59,5 +59,6 @@ draw(transform: mat4, position: vec3): void {
         gl.bindTexture(gl.TEXTURE_2D, this.lightTexture);
         this.lightMesh.bindShader(this.gl, this.shader);
         gl.drawElements(gl.TRIANGLES, this.lightMesh.indiceCount(), gl.UNSIGNED_SHORT, 0.0);
+        gl.bindTexture(gl.TEXTURE_2D, null);
     }
 }

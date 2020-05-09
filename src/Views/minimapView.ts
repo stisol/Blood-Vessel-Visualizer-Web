@@ -1,13 +1,17 @@
 import View from "../view";
 import Camera from "../camera";
 import Settings from "../settings";
-import { LoadedTextureData } from "../shader";
+import { LoadedTextureData, initShaderProgram } from "../shader";
 import TransferFunctionController from "../transferFunction";
 import VolumeRenderer from "../renderer/VolumeRenderer";
 import RenderTarget from "../renderTarget";
 import { mat4, vec4, vec3 } from "gl-matrix";
 import Light from "../light";
+import Mesh from "../mesh";
+import createSquareMesh from "../meshes/squareMesh";
 
+import viewVert from "../shaders/view.vert";
+import viewFrag from "../shaders/view.frag";
 export default class MinimapView implements View {
 
     private gl: WebGL2RenderingContext;
@@ -19,13 +23,31 @@ export default class MinimapView implements View {
 
     private lights: Light;
 
+    private outline: Mesh;
+    private cameraOutline: Mesh;
+
+    private viewInfo: any;
+
+    private viewAspect: number;
+
     public constructor(gl: WebGL2RenderingContext, transferFunction: TransferFunctionController) {
         this.gl = gl;
         this.volumeRenderer = new VolumeRenderer(gl, transferFunction);
         this.renderTarget = new RenderTarget(gl, 256, 256);
 
-
+        this.outline = createSquareMesh(-1.0, 1.0, true, 0.02);
+        this.cameraOutline = createSquareMesh(-1.0, 1.0, true, 0.04);
         this.lights = new Light(gl);
+        
+        const viewProgram = initShaderProgram(gl, viewVert, viewFrag);
+        this.viewInfo = {
+            program: viewProgram,
+            uniformLocations: {
+                transform: gl.getUniformLocation(viewProgram, "uTransform"),
+                disabledTexture: gl.getUniformLocation(viewProgram, "disabledTexture"),
+            },
+        };
+        this.viewAspect = 1.0;
     }
 
     render(aspect: number, camera: Camera, settings: Settings, loadedData: LoadedTextureData): void {
@@ -81,6 +103,42 @@ export default class MinimapView implements View {
         mat4.multiply(lightMatrix, this.projectionMatrix, lightMatrix);
 
         this.lights.draw(lightMatrix, vec3.create());  
+
+        gl.useProgram(this.viewInfo.program);
+
+        gl.uniformMatrix4fv(
+            this.viewInfo.uniformLocations.transform,
+            false,
+            mat4.create());
+
+        gl.uniform1i(this.viewInfo.uniformLocations.disabledTexture, 1);
+
+        this.outline.bindShader(gl, this.viewInfo.program);
+        gl.drawElements(gl.TRIANGLES, this.outline.indiceCount(), gl.UNSIGNED_SHORT, 0);
+        
+
+        const cameraZoom = camera.getZoomFactor();
+        const cameraOffset = camera.getTranslation();
+        const nOffset = vec3.negate(vec3.create(), cameraOffset)
+        const scaleVector =  vec3.fromValues(1/cameraZoom, 1/cameraZoom, 1/cameraZoom);
+        const transform = mat4.create();
+        mat4.scale(transform, transform, scaleVector);
+
+        vec3.mul(nOffset, nOffset, scaleVector);
+
+        mat4.translate(transform, transform, vec3.fromValues(nOffset[0], nOffset[1], 0.0));
+
+        gl.uniformMatrix4fv(
+            this.viewInfo.uniformLocations.transform,
+            false,
+            transform);
+
+        this.cameraOutline.bindShader(gl, this.viewInfo.program);
+        gl.drawElements(gl.TRIANGLES, this.cameraOutline.indiceCount(), gl.UNSIGNED_SHORT, 0);
+    }
+
+    setViewAspectRatio(aspect: number): void {
+        this.viewAspect = aspect;
     }
 
     getRenderTarget(): RenderTarget {

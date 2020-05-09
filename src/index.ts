@@ -69,6 +69,7 @@ async function Init(): Promise<void> {
 
             renderSlice.render(aspect, camera, settings, loadedData);
             renderView.render(aspect, camera, settings, loadedData);
+            minimap.setViewAspectRatio(aspect);
             minimap.getRenderTarget().bindFramebuffer();
             minimap.render(1.0, camera, settings, loadedData);
         }
