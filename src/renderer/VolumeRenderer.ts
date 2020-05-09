@@ -22,6 +22,9 @@ export default class VolumeRenderer {
     private lightPos: vec3;
     private transform: mat4;
 
+    private godraysMap?: WebGLTexture;
+    private hasGodRays = false;
+
     public constructor(gl: WebGL2RenderingContext, transferFunction: TransferFunctionController) {
         const shaderProgram = initShaderProgram(gl, vert, frag);
         this.programInfo = new ProgramInfo(gl, shaderProgram);
@@ -33,7 +36,7 @@ export default class VolumeRenderer {
         this.transform = mat4.create();
     }
 
-    render(gl: WebGL2RenderingContext, settings: Settings): void {
+    render(gl: WebGL2RenderingContext, settings: Settings, lightMatrix: mat4 = mat4.create()): void {
         
         gl.enable(gl.CULL_FACE);
         gl.cullFace(gl.FRONT);
@@ -45,10 +48,23 @@ export default class VolumeRenderer {
         gl.activeTexture(gl.TEXTURE2);
         gl.bindTexture(gl.TEXTURE_2D, this.transferFunction.getTransferFunctionTexture(gl));
 
+        if(this.godraysMap != null) {
+            gl.activeTexture(gl.TEXTURE3);
+            gl.bindTexture(gl.TEXTURE_2D, this.godraysMap);
+        }
+
+        gl.uniformMatrix4fv(
+            this.programInfo.uniformLocations.lightMatrix,
+            false,
+            lightMatrix);
+
         this.mesh.bindShader(gl, this.programInfo.program);
         gl.drawElements(gl.TRIANGLES, this.mesh.indiceCount(), gl.UNSIGNED_SHORT, 0);
             
+        gl.activeTexture(gl.TEXTURE3);
+        gl.bindTexture(gl.TEXTURE_2D, null);
         gl.disable(gl.CULL_FACE);
+        gl.useProgram(null);
     }
 
     private bindUniforms(gl: WebGL2RenderingContext, settings: Settings): void {
@@ -64,6 +80,7 @@ export default class VolumeRenderer {
         gl.uniform3fv(this.programInfo.uniformLocations.boxMax, boxMax);
 
         gl.uniform1i(this.programInfo.uniformLocations.lowQuality, 0);
+        gl.uniform1i(this.programInfo.uniformLocations.hasGodRays, this.hasGodRays ? 1 : 0);
 
         gl.uniform1i(this.programInfo.uniformLocations.colorAccumulationType, settings.accumulationMethod());
         
@@ -75,10 +92,11 @@ export default class VolumeRenderer {
 
         gl.uniformMatrix4fv(this.programInfo.uniformLocations.scaleMatrix, false, scale);
         
-        gl.uniform1i(this.programInfo.uniformLocations.transferFunction, 2);
 
         gl.uniform1i(this.programInfo.uniformLocations.textureData, 0);
         gl.uniform1i(this.programInfo.uniformLocations.normalData, 1);
+        gl.uniform1i(this.programInfo.uniformLocations.transferFunction, 2);
+        gl.uniform1i(this.programInfo.uniformLocations.godRaysTexture, 3);
 
         gl.uniform1f(this.programInfo.uniformLocations.depth, 0);
     }
@@ -93,6 +111,11 @@ export default class VolumeRenderer {
 
     public setTransform(transform: mat4): void {
         this.transform = transform;
+    }
+
+    public setGodRaysMap(texture: WebGLTexture): void {
+        this.godraysMap = texture;
+        this.hasGodRays = true;
     }
 }
 
@@ -112,6 +135,7 @@ class UniformLocations {
     scaleMatrix: WebGLUniformLocation;
     depth: WebGLUniformLocation;
     transferFunction: WebGLUniformLocation;
+    godRaysTexture: WebGLUniformLocation;
     eyePos: WebGLUniformLocation;
     textureData: WebGLUniformLocation;
     normalData: WebGLUniformLocation;
@@ -120,6 +144,8 @@ class UniformLocations {
     boxMin: WebGLUniformLocation;
     boxMax: WebGLUniformLocation;
     lowQuality: WebGLUniformLocation;
+    hasGodRays: WebGLUniformLocation;
+    lightMatrix: WebGLUniformLocation;
 
     constructor(gl: WebGL2RenderingContext, shaderProgram: WebGLShader) {        
         this.projectionMatrix = 
@@ -148,5 +174,11 @@ class UniformLocations {
             gl.getUniformLocation(shaderProgram, "box_max") as WebGLUniformLocation;
         this.lowQuality = 
             gl.getUniformLocation(shaderProgram, "lowQuality") as WebGLUniformLocation;
+        this.godRaysTexture = 
+            gl.getUniformLocation(shaderProgram, "uGodRaysTexture") as WebGLUniformLocation;
+        this.hasGodRays = 
+            gl.getUniformLocation(shaderProgram, "hasGodRays") as WebGLUniformLocation;
+        this.lightMatrix = 
+            gl.getUniformLocation(shaderProgram, "uLightMatrix") as WebGLUniformLocation;
     }
 }

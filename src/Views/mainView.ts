@@ -35,6 +35,9 @@ export default class MainView implements View {
     private lights: Light;
 
     private volumeRenderer: VolumeRenderer;
+    private godRayRenderer: VolumeRenderer;
+
+    public godRays: RenderTarget;
     
     public constructor(gl: WebGL2RenderingContext, transferFunction: TransferFunctionController) {
         this.gl = gl;
@@ -44,6 +47,8 @@ export default class MainView implements View {
         this.prePauseRes = [this.maxResolutionWidth, this.maxResolutionHeight];
         this.renderTarget = new RenderTarget(gl, this.maxResolutionWidth, this.maxResolutionHeight);
 
+        this.godRays = new RenderTarget(gl, 512, 512);
+
         // Transfer function setup
         
         this.lights = new Light(gl);
@@ -51,15 +56,13 @@ export default class MainView implements View {
         this.deltaTime = 0.0;
 
         this.volumeRenderer = new VolumeRenderer(gl, transferFunction);
+        this.godRayRenderer = new VolumeRenderer(gl, transferFunction);
     }
 
     // eslint-disable-next-line @typescript-eslint/no-empty-function
     render(aspect: number, camera: Camera, settings: Settings, loadedData: LoadedTextureData): void {
         const gl = this.gl;
         
-        this.renderTarget.bindFramebuffer();
-
-        gl.viewport(0, 0, this.renderTarget.getWidth(), this.renderTarget.getHeight());
 
         const zNear = 0.1;
         const zFar = 40.0;
@@ -87,11 +90,42 @@ export default class MainView implements View {
         //mat4.multiply(matrix, this.modelViewMatrix, modelScale);
         mat4.multiply(matrix, this.projectionMatrix, this.modelViewMatrix);
 
+        const theLight = mat4.create();
+        mat4.translate(theLight, theLight, vec3.negate(vec3.create(), lightPos));
+        mat4.mul(theLight, mat4.invert(mat4.create(), lightTransform), theLight);
+
+        
+        const test = mat4.create();
+        mat4.multiply(test, this.projectionMatrix, theLight);
+
+        /*const test = mat4.copy(mat4.create(), matrix);
+        mat4.translate(test, test, vec3.negate(vec3.create(), lightPos));
+        mat4.translate(test, test, eye);*/
+
+        //const test = mat4.targetTo(mat4.create(), lightPos, vec3.create(), vec3.fromValues(0.0, 1.0, 0.0));
+
+
+        this.godRays.bindFramebuffer();
+        gl.viewport(0, 0, this.godRays.getWidth(), this.godRays.getHeight());
+        
+        gl.clearColor(0.0, 0.0, 0.0, 1.0);
+        gl.clearDepth(1.0);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        // Setup and render the volume
+        this.godRayRenderer.setEyePos(lightPos);
+        this.godRayRenderer.setLightPos(lightPos);
+        this.godRayRenderer.setTransform(test);
+        this.godRayRenderer.render(gl, settings);
+        
+        this.renderTarget.bindFramebuffer();
+        gl.viewport(0, 0, this.renderTarget.getWidth(), this.renderTarget.getHeight());
+
         // Setup and render the volume
         this.volumeRenderer.setEyePos(eye);
         this.volumeRenderer.setLightPos(lightPos);
         this.volumeRenderer.setTransform(matrix);
-        this.volumeRenderer.render(gl, settings);
+        this.volumeRenderer.setGodRaysMap(this.godRays.getDepthTexture());
+        this.volumeRenderer.render(gl, settings, lightTransform);
 
         const faceMatrix = mat4.create();
         const lightMatrix = mat4.create();
@@ -207,7 +241,7 @@ class UniformLocations {
     boxMin: WebGLUniformLocation;
     boxMax: WebGLUniformLocation;
     lowQuality: WebGLUniformLocation;
-
+    
     constructor(gl: WebGL2RenderingContext, shaderProgram: WebGLShader) {        
         this.projectionMatrix = 
             gl.getUniformLocation(shaderProgram, "uProjectionMatrix") as WebGLUniformLocation;

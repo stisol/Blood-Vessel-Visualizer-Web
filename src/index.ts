@@ -14,6 +14,12 @@ import { mat4, vec3 } from "gl-matrix";
 
 async function Init(): Promise<void> {
     const canvas = document.querySelector("#theCanvas") as HTMLCanvasElement;
+    let stop = false;
+    canvas.addEventListener("webglcontextlost", function(event) {
+        event.preventDefault();
+        stop = true;
+        return;
+    });
 
     canvas.width = canvas.clientWidth;
     canvas.height = canvas.clientHeight;
@@ -107,8 +113,9 @@ async function Init(): Promise<void> {
         
         gl.bindTexture(gl.TEXTURE_2D, null);
         gl.enable(gl.DEPTH_TEST);
-
+        if(!stop) {
         requestAnimationFrame(renderLoop);
+        }
     };
     requestAnimationFrame(renderLoop);
 }
