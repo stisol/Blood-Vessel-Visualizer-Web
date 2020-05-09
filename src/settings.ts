@@ -197,6 +197,8 @@ class LightSetting extends Setting {
 
     private draw?: () => void;
 
+    private camera: Camera;
+
     constructor(sidebar: HTMLDivElement, titleText: string | null) {
         super(sidebar, titleText);
 
@@ -210,7 +212,7 @@ class LightSetting extends Setting {
         this.lightTransform = mat4.create();
         
         
-        const camera = new Camera([0.0, 0.0, 0.0], this.elem, 0.0, true, true, true, true);
+        this.camera = new Camera([0.0, 0.0, 0.0], this.elem, 0.0, true, true, true, true);
 
         const gl = this.elem.getContext("webgl2");
         if (gl === null) {
@@ -251,7 +253,7 @@ class LightSetting extends Setting {
         const createRotationMatrix = (): mat4 => {
             const modelViewMatrix = mat4.create();
 
-            mat4.mul(modelViewMatrix, camera.getTransform(), modelViewMatrix);
+            mat4.mul(modelViewMatrix, this.camera.getTransform(), modelViewMatrix);
 
             //modelViewMatrix = mat4.copy(mat4.create(), camera.getTransform());
             mat4.rotateX(modelViewMatrix, modelViewMatrix, Math.PI);
@@ -310,7 +312,7 @@ class LightSetting extends Setting {
 
         this.draw();
 
-        camera.setOnChange((): void => {
+        this.camera.setOnChange((): void => {
             if(this.draw == null) return; 
             this.draw();
             this.updated = true;
@@ -328,6 +330,7 @@ class LightSetting extends Setting {
     multiplyLightTransform(rotation: quat): void {
         this.modelViewMatrix = mat4.fromQuat(mat4.create(), rotation);
         if(this.draw == null) return;
+        this.camera.setAddidionalTransform(this.modelViewMatrix);
         this.draw();
     }
 }

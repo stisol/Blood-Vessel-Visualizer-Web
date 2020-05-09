@@ -22,6 +22,8 @@ export default class Camera {
 
     private zoomDistance = 0.0;
 
+    private additionalTransform = mat4.create();
+
     public constructor(target: vec3, canvas: HTMLCanvasElement, radius = 4.0, invertY = false, disableRoll = false, disableZoom = false, disableMovement = false) {
 
         // JQuery is good at automatically creating event handler queues.
@@ -58,6 +60,10 @@ export default class Camera {
         const v = this.updated;
         this.updated = false;
         return v;
+    }
+
+    setAddidionalTransform(transform: mat4): void {
+        this.additionalTransform = transform;
     }
 
     private setMouseDown(value: boolean): void {
@@ -117,7 +123,12 @@ export default class Camera {
     private move(x: number, y: number, z: number): void {
         if(this.disableMovement) return;
         const direction = vec4.fromValues(x, y, z, 0.0);
-        vec4.transformMat4(direction, direction, mat4.invert(mat4.create(), this.transform));
+
+        const axisTransform = mat4.create();
+        mat4.invert(axisTransform, this.transform);
+        mat4.mul(axisTransform, this.additionalTransform, axisTransform);
+
+        vec4.transformMat4(direction, direction, axisTransform);
         const direction3 = vec3.fromValues(direction[0], direction[1], direction[2]);
         mat4.translate(this.transform, this.transform, vec3.scale(direction3, direction3, 1/60.0));
         this.updated = true;

@@ -235,7 +235,7 @@ void main() {
         if (hit.x > hit.y) {
             return;
         }
-        if(!lowQuality || true) {
+        if(!lowQuality) {
             // Ignore if behind view
             hit.x = max(hit.x, 0.0);
 
