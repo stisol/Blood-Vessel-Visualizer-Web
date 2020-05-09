@@ -74,7 +74,8 @@ label {
     background: #282828;
     color: #E7E7E7;
     border: none;
-    margin: 10px 0;
+    margin: 5px 0;
+    display: inline-block
 }
 
 @keyframes example {
@@ -93,4 +94,8 @@ label {
     height: 200px;
     margin: 10px 0;
     padding-top: 10px;
+}
+
+.settingsContainer {
+    margin: 10px 0;
 }
