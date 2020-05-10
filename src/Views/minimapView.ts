@@ -73,7 +73,7 @@ export default class MinimapView implements View {
         this.modelViewMatrix = mat4.create();
         mat4.translate(this.modelViewMatrix, this.modelViewMatrix, vec3.fromValues(0.0, 0.0, -4.0));
         mat4.mul(this.modelViewMatrix, this.modelViewMatrix, camera.getRotation());
-        settings.multiplyLightTransform(camera.getTransform());
+        settings.multiplyLightTransform(camera.getRotation());
         //mat4.translate(this.modelViewMatrix, this.modelViewMatrix, vec3.negate(vec3.create(), this.modelCenter));
 
         const eye4 = vec4.transformMat4(vec4.create(), vec4.fromValues(0.0, 0.0, 0.0, 1.0), mat4.invert(mat4.create(), this.modelViewMatrix));

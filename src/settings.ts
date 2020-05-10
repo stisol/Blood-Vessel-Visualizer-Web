@@ -327,8 +327,8 @@ class LightSetting extends Setting {
         return mat4.rotateX(mat4.create(), this.lightTransform, Math.PI);
     }
     
-    multiplyLightTransform(rotation: quat): void {
-        this.modelViewMatrix = mat4.fromQuat(mat4.create(), rotation);
+    multiplyLightTransform(transform: mat4): void {
+        this.modelViewMatrix = mat4.copy(mat4.create(), transform);
         if(this.draw == null) return;
         this.camera.setAddidionalTransform(this.modelViewMatrix);
         this.draw();
@@ -417,15 +417,9 @@ export default class Settings {
     }
 
     public multiplyLightTransform(transform: mat4): void {
-        const ltransform = mat3.create();
-        mat3.fromMat4(ltransform, transform);
-
-        const rotationQuat = quat.create();
-        quat.fromMat3(rotationQuat, ltransform);
-        //quat.normalize(rotationQuat, rotationQuat);
 
         const light = this.settings["light"] as LightSetting;
-        light.multiplyLightTransform(rotationQuat);
+        light.multiplyLightTransform(transform);
     }
 
     public setLoadedData(data: LoadedTextureData): void {
