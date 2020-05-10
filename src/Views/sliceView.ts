@@ -51,8 +51,7 @@ export default class SliceView implements View {
         this.programInfo = new ProgramInfo(gl, shaderProgram);
 
         this.canvas = document.getElementById("theCanvas") as HTMLCanvasElement;
-        this.renderTarget2D = this.renderTarget = new RenderTarget(gl, 2048, 2048);
-        
+        this.renderTarget2D = new RenderTarget(gl, 2048, 2048);
 
         const wheelHandler = this.onMouseScroll.bind(this);
         $("#theCanvas")
