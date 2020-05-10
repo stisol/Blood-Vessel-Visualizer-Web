@@ -275,10 +275,6 @@ void main() {
         gl_FragDepth = ((far - near) * (depth_traced) + near + far) / 2.0;
     }
     
-    if(length(position.xyz) < 0.1 && (position.x > -0.02 && position.x < 0.01 || position.y > -0.02 && position.y < 0.02)) {
-        color = vec4(1.0);
-        gl_FragDepth = gl_DepthRange.near;
-    }
     //color = texture(uTransferFunction, vec2(ray_dir.x, 0.5));
     //color.rgb = normal(color_hit);
     //color = vec4(abs(normal(ray - ray_dir*dt)), 1.0);
