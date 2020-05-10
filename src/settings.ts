@@ -405,7 +405,10 @@ export default class Settings {
                 {value: "./data/hand", text: "Hand"},
                 {value: "./data/manix", text: "Manix"},
                 {value: "./data/wholebody", text: "Body"},
-                {value: "./data/sinusveins", text: "Sinus"}
+                {value: "./data/sinusveins", text: "Sinus"},
+                {value: "./data/manix-256x256x230", text: "Manix (Lower quality)"},
+                {value: "./data/wholebody-128x128x389", text: "Body (Lower quality)"},
+                {value: "./data/sinusveins-256x256x166", text: "Sinus (Lower quality)"}
             ]),
             showSlices: new CheckboxSetting(sidebar, "Show Slices", false, "show-slices", "checkbox"),
             isOrthoElem: new CheckboxSetting(sidebar, "Orthographic Camera", false, "orthographic-camera", "checkbox"),

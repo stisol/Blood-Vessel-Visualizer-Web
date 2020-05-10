@@ -92,7 +92,7 @@ export default class MinimapView implements View {
         this.volumeRenderer.setEyePos(eye);
         this.volumeRenderer.setLightPos(lightPos);
         this.volumeRenderer.setTransform(matrix);
-        this.volumeRenderer.render(gl, settings);
+        this.volumeRenderer.render(gl, settings, true);
 
         const faceMatrix = mat4.create();
         const lightMatrix = mat4.create();

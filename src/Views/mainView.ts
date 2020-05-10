@@ -91,7 +91,7 @@ export default class MainView implements View {
         this.volumeRenderer.setEyePos(eye);
         this.volumeRenderer.setLightPos(lightPos);
         this.volumeRenderer.setTransform(matrix);
-        this.volumeRenderer.render(gl, settings);
+        this.volumeRenderer.render(gl, settings, !this.paused);
 
         const faceMatrix = mat4.create();
         const lightMatrix = mat4.create();

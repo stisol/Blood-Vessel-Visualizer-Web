@@ -28,13 +28,14 @@ uniform vec3 clipPlanePos;
 uniform vec3 clipPlaneNormal;
 
 uniform mat4 uScaleMatrix;
+uniform mat4 uInverseScaleMatrix;
 
 uniform bool lowQuality; 
 //const vec3 lightPos = vec3(4.0, 2.0, 0.5);
 
 // TODO: Make these uniform
 // value between (0.0, 1.0] that defines the step resoultion based on size
-float resolution = 0.1;
+float resolution = 0.05;
 // Volume dimension
 uniform vec3 volume_dim;
 
@@ -65,7 +66,7 @@ float rand(vec2 co){
 
 float calculateAmbientOcclusionCoeff(vec3 hit) {
     
-    mat4 inverseScale = inverse(uScaleMatrix);
+    mat4 inverseScale = uInverseScaleMatrix;
     vec3 texSpaceRay = (inverseScale * vec4(hit, 1.0)).xyz;
     // Create orthogonal basis
     vec3 norm = get_normal(texSpaceRay);
@@ -102,7 +103,7 @@ float calculateShadowCoeff(vec3 hit, vec3 ray_dir, float start, float end, float
     //float lightness = 1.0;
     float solidity = 0.0;
     vec3 ray = hit + ray_dir * (step_size);
-    mat4 inverseScale = inverse(uScaleMatrix);
+    mat4 inverseScale = uInverseScaleMatrix;
     vec3 texSpaceRay = (inverseScale * vec4(ray, 1.0)).xyz;
     vec3 texSpaceRayDir = (inverseScale * vec4(ray_dir, 1.0)).xyz;
     vec3 norm = get_normal(texSpaceRay);
@@ -138,7 +139,7 @@ float calculateShadowCoeff(vec3 hit, vec3 ray_dir, float start, float end, float
 // Returns hit location on the finished march (Will be the start of the ray if nothing was hit)
 vec3 raymarch(in vec3 ray, in vec3 ray_dir, in float start, in float end, in float step_size) {
     vec3 color_hit = ray;
-    mat4 inverseScale = inverse(uScaleMatrix);
+    mat4 inverseScale = uInverseScaleMatrix;
     vec3 texSpaceRay = (inverseScale * vec4(ray, 1.0)).xyz;
     vec3 texSpaceRayDir = (inverseScale * vec4(ray_dir, 1.0)).xyz;
 
@@ -225,7 +226,7 @@ void main() {
     hit.x = max(hit.x, 0.0);
 
     if(lowQuality) {
-        resolution = 0.2;
+        resolution = 0.5;
     }
     
 	// Compute optimal step size
@@ -245,22 +246,12 @@ void main() {
         if (hit.x > hit.y) {
             return;
         }
-        if(!lowQuality) {
-            // Ignore if behind view
-            hit.x = max(hit.x, 0.0);
+        // Ignore if behind view
+        hit.x = max(hit.x, 0.0);
 
-            float hit_light = calculateShadowCoeff(color_hit, light_dir, hit.x, hit.y, dt)*0.7;
-            float ambient = calculateAmbientOcclusionCoeff(color_hit) * 0.5 + 0.5;
-            color.rgb *= (hit_light + 0.3) * ambient;
-        } 
-        else {
-
-            mat4 inverseScale = inverse(uScaleMatrix);
-            vec3 texSpaceRayDir = (inverseScale * vec4(color_hit, 1.0)).xyz;
-            vec3 normal = get_normal(texSpaceRayDir);
-            float diff = max(dot(normal, light_dir), 0.0);
-            color.rgb *= diff+0.3;
-        }
+        float hit_light = calculateShadowCoeff(color_hit, light_dir, hit.x, hit.y, dt)*0.7;
+        float ambient = calculateAmbientOcclusionCoeff(color_hit) * 0.5 + 0.5;
+        color.rgb *= (hit_light + 0.3) * ambient;
 
         //color.rgb *= ambient;
     } else {

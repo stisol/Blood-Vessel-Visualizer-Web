@@ -33,14 +33,14 @@ export default class VolumeRenderer {
         this.transform = mat4.create();
     }
 
-    render(gl: WebGL2RenderingContext, settings: Settings): void {
+    render(gl: WebGL2RenderingContext, settings: Settings, lowQuality: boolean): void {
         
         gl.enable(gl.CULL_FACE);
         gl.cullFace(gl.FRONT);
 
         gl.useProgram(this.programInfo.program);
 
-        this.bindUniforms(gl, settings);
+        this.bindUniforms(gl, settings, lowQuality);
         
         gl.activeTexture(gl.TEXTURE2);
         gl.bindTexture(gl.TEXTURE_2D, this.transferFunction.getTransferFunctionTexture(gl));
@@ -51,7 +51,7 @@ export default class VolumeRenderer {
         gl.disable(gl.CULL_FACE);
     }
 
-    private bindUniforms(gl: WebGL2RenderingContext, settings: Settings): void {
+    private bindUniforms(gl: WebGL2RenderingContext, settings: Settings, lowQuality: boolean): void {
 
         const scale = settings.getLoadedData().scale;
         gl.uniform3fv(this.programInfo.uniformLocations.eyePos, this.eye);
@@ -70,7 +70,7 @@ export default class VolumeRenderer {
         gl.uniform3fv(this.programInfo.uniformLocations.boxMin, boxMin);
         gl.uniform3fv(this.programInfo.uniformLocations.boxMax, boxMax);
 
-        gl.uniform1i(this.programInfo.uniformLocations.lowQuality, 0);
+        gl.uniform1i(this.programInfo.uniformLocations.lowQuality, lowQuality ? 1 : 0);
 
         gl.uniform1i(this.programInfo.uniformLocations.colorAccumulationType, settings.accumulationMethod());
         
@@ -80,6 +80,7 @@ export default class VolumeRenderer {
             false,
             this.transform);
 
+        gl.uniformMatrix4fv(this.programInfo.uniformLocations.uInverseScaleMatrix, false, mat4.invert(mat4.create(), scale));
         gl.uniformMatrix4fv(this.programInfo.uniformLocations.scaleMatrix, false, scale);
         
         gl.uniform1i(this.programInfo.uniformLocations.transferFunction, 2);
@@ -131,6 +132,7 @@ class UniformLocations {
     clipPlaneNormal: WebGLUniformLocation;
     showCuttingplane: WebGLUniformLocation;
     volumeDim: WebGLUniformLocation;
+    uInverseScaleMatrix: WebGLUniformLocation;
 
     constructor(gl: WebGL2RenderingContext, shaderProgram: WebGLShader) {        
         this.projectionMatrix = 
@@ -170,5 +172,7 @@ class UniformLocations {
             gl.getUniformLocation(shaderProgram, "showCuttingplane") as WebGLUniformLocation;
         this.volumeDim = 
             gl.getUniformLocation(shaderProgram, "volume_dim") as WebGLUniformLocation;
+        this.uInverseScaleMatrix = 
+            gl.getUniformLocation(shaderProgram, "uInverseScaleMatrix") as WebGLUniformLocation;
     }
 }
