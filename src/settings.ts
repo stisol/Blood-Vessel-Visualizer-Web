@@ -76,8 +76,6 @@ class SliderSetting extends Setting {
     constructor(sidebar: HTMLDivElement, titleText: string|null, initialValue: number, min: number, max: number, step: number, id: string, cssClass: string) {
         super(sidebar, titleText);
 
-        this.elem = document.createElement("input");
-    
         const input = document.createElement("input");
         input.type = "range";
         input.min = String(min);
@@ -106,8 +104,6 @@ class CheckboxSetting extends Setting {
     constructor(sidebar: HTMLDivElement, titleText: string|null, initialValue: boolean, id: string, cssClass: string) {
         super(sidebar, titleText);
 
-        this.elem = document.createElement("input");
-    
         const input = document.createElement("input");
         input.type = "checkbox";
         input.classList.add(cssClass);
@@ -125,6 +121,60 @@ class CheckboxSetting extends Setting {
     public value(): boolean {
         return this.elem.checked;
     }
+}
+
+class Vec3Setting extends Setting {
+
+    private elemX: HTMLInputElement;
+    private elemY: HTMLInputElement;
+    private elemZ: HTMLInputElement;
+
+    private initElem(sidebar: HTMLDivElement, input: HTMLInputElement, isNormal = true, doMargin = true): void {
+        input.type = "range";
+        input.value = "0";
+        if(doMargin == false && isNormal == true )
+            input.value = "1";
+        input.min = "-1.0";
+        input.max = "1.0";
+        input.step = "0.01";
+        input.style.width = String(sidebar.clientWidth / 4.0) + "px"; 
+        if(doMargin) {
+            input.style.marginRight = String(sidebar.clientWidth / 32.0) + "px";
+        }
+        input.oninput = (): void => {
+            if(isNormal) {
+                const val = this.value();
+                vec3.normalize(val, val);
+                this.elemX.value = String(val[0]);
+                this.elemY.value = String(val[1]);
+                this.elemZ.value = String(val[2]);
+            }
+            this.updated = true;
+        }
+        this.container.appendChild(input);
+    }
+
+    constructor(sidebar: HTMLDivElement, titleText: string|null, isNormal = true) {
+        super(sidebar, titleText);
+        this.elemX = document.createElement("input");
+        this.elemY = document.createElement("input");
+        this.elemZ = document.createElement("input");
+
+        this.initElem(sidebar, this.elemX, isNormal);
+        this.initElem(sidebar, this.elemY, isNormal);
+        this.initElem(sidebar, this.elemZ, isNormal, false);
+    }
+
+    public getHtml(): HTMLElement {
+        throw new Error("Method not implemented.");
+    }
+    public value(): vec3 {
+        const x = parseFloat(this.elemX.value);
+        const y = parseFloat(this.elemY.value);
+        const z = parseFloat(this.elemZ.value);
+        return vec3.fromValues(x, y, z);
+    }
+
 }
 
 class ColorSelectSetting extends Setting {
@@ -365,7 +415,10 @@ export default class Settings {
                 {value: "1", text: "3D View only"},
                 {value: "2", text: "Quad view"}
             ]),
-            light: new LightSetting(sidebar, "Light position")
+            light: new LightSetting(sidebar, "Light position"),
+            showCuttingPlane: new CheckboxSetting(sidebar, "Show cuttingplane", false, "cuttingplane", "checkbox"),
+            cuttingPosition: new Vec3Setting(sidebar, "Cuttingplane position", false),
+            cuttingNormal: new Vec3Setting(sidebar, "Cuttingplane normal", true),
         };
 
         this.loadedData = data;
@@ -405,6 +458,18 @@ export default class Settings {
 
     public lightDistance(): number {
         return this.settings["lightDistance"].value();
+    }
+
+    public showCuttingplane(): boolean {
+        return this.settings["showCuttingPlane"].value();
+    }
+
+    public cuttingPlanePos(): vec3 {
+        return this.settings["cuttingPosition"].value();
+    }
+
+    public cuttingPlaneNormal(): vec3 {
+        return this.settings["cuttingNormal"].value();
     }
 
     public layout(): Layout {

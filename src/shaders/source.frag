@@ -23,9 +23,9 @@ uniform mat4 uProjectionMatrix;
 uniform vec3 box_min;
 uniform vec3 box_max;
 
-const vec3 clipPlanePos = vec3(0.0, 0.0, 0.0);
-const vec3 clipPlaneNormal = vec3(1.0, 1.0, 1.0);
-const vec4 clipPlaneColor = vec4(1.0, 1.0, 1.0, 0.5);
+uniform bool showCuttingplane;
+uniform vec3 clipPlanePos;
+uniform vec3 clipPlaneNormal;
 
 uniform mat4 uScaleMatrix;
 
@@ -108,11 +108,15 @@ float calculateShadowCoeff(vec3 hit, vec3 ray_dir, float start, float end, float
     vec3 norm = get_normal(texSpaceRay);
     ray = clamp(ray + norm * 0.01, vec3(-1.0), vec3(1.0));
     texSpaceRay = clamp(texSpaceRay + norm * 0.01, vec3(-1.0), vec3(1.0));
+    vec3 oldRay = ray;
 
     
     for(float t = start+step_size; t < end; t+=step_size) {
+
         float d = dot(ray - clipPlanePos, clipPlaneNormal);
-        if(d < 0.0) {
+
+
+        if(d < 0.0 || !showCuttingplane) {
             float val = texture(textureData, texSpaceRay/2.0+0.5).r;
             float t_alpha = texture(uTransferFunction, vec2(val, 0.5)).a;
             t_alpha = 1.0 - pow(1.0 - t_alpha, resolution);
@@ -123,6 +127,7 @@ float calculateShadowCoeff(vec3 hit, vec3 ray_dir, float start, float end, float
             }
         }
 
+        oldRay = ray;
         ray += ray_dir * step_size;
         texSpaceRay += texSpaceRayDir * step_size;
     }
@@ -145,13 +150,7 @@ vec3 raymarch(in vec3 ray, in vec3 ray_dir, in float start, in float end, in flo
         float oldD = dot(oldRay - clipPlanePos, clipPlaneNormal);
         float d = dot(ray - clipPlanePos, clipPlaneNormal);
 
-        /*if(sign(d) != sign(oldD)) {
-
-            color.rgb += (1.0 - color.a) * (clipPlaneColor.a * clipPlaneColor.rgb);
-            color.a += (1.0 - color.a) * clipPlaneColor.a;
-        }*/
-
-        if(d < 0.0) {
+        if(d < 0.0 || !showCuttingplane) {
             // TODO: Make the data uniform and not dependent on max-size
             float val = texture(textureData, texSpaceRay/2.0+0.5).r;
 

@@ -57,6 +57,10 @@ export default class VolumeRenderer {
         gl.uniform3fv(this.programInfo.uniformLocations.eyePos, this.eye);
         gl.uniform3fv(this.programInfo.uniformLocations.lightPosition, this.lightPos);
 
+        gl.uniform1i(this.programInfo.uniformLocations.showCuttingplane, settings.showCuttingplane() ? 1 : 0);
+        gl.uniform3fv(this.programInfo.uniformLocations.clipPlanePos, settings.cuttingPlanePos());
+        gl.uniform3fv(this.programInfo.uniformLocations.clipPlaneNormal, settings.cuttingPlaneNormal());
+
         const boxMin = vec3.transformMat4(vec3.create(), vec3.fromValues(-1.0,-1.0,-1.0), scale);
         const boxMax = vec3.transformMat4(vec3.create(), vec3.fromValues(1.0, 1.0, 1.0), scale);
 
@@ -120,6 +124,9 @@ class UniformLocations {
     boxMin: WebGLUniformLocation;
     boxMax: WebGLUniformLocation;
     lowQuality: WebGLUniformLocation;
+    clipPlanePos: WebGLUniformLocation;
+    clipPlaneNormal: WebGLUniformLocation;
+    showCuttingplane: WebGLUniformLocation;
 
     constructor(gl: WebGL2RenderingContext, shaderProgram: WebGLShader) {        
         this.projectionMatrix = 
@@ -148,5 +155,14 @@ class UniformLocations {
             gl.getUniformLocation(shaderProgram, "box_max") as WebGLUniformLocation;
         this.lowQuality = 
             gl.getUniformLocation(shaderProgram, "lowQuality") as WebGLUniformLocation;
+            
+        this.clipPlanePos = 
+        gl.getUniformLocation(shaderProgram, "clipPlanePos") as WebGLUniformLocation;
+        
+        this.clipPlaneNormal = 
+            gl.getUniformLocation(shaderProgram, "clipPlaneNormal") as WebGLUniformLocation;
+        
+        this.showCuttingplane = 
+            gl.getUniformLocation(shaderProgram, "showCuttingplane") as WebGLUniformLocation;
     }
 }
