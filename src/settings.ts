@@ -401,6 +401,12 @@ export default class Settings {
 
         this.settings = {
             fps: new TextSetting(sidebar, null, "FPS: N/A"),
+            file: new SelectSetting(sidebar, "File", [
+                {value: "./data/hand", text: "Hand"},
+                {value: "./data/manix", text: "Manix"},
+                {value: "./data/wholebody", text: "Body"},
+                {value: "./data/sinusveins", text: "Sinus"}
+            ]),
             showSlices: new CheckboxSetting(sidebar, "Show Slices", false, "show-slices", "checkbox"),
             isOrthoElem: new CheckboxSetting(sidebar, "Orthographic Camera", false, "orthographic-camera", "checkbox"),
             defaultColor: new ColorSelectSetting(sidebar, "Default color", "#FFE0BDFF", "defaultColor", "color-picker"),
@@ -419,12 +425,6 @@ export default class Settings {
             showCuttingPlane: new CheckboxSetting(sidebar, "Show cuttingplane", false, "cuttingplane", "checkbox"),
             cuttingPosition: new Vec3Setting(sidebar, "Cuttingplane position", false),
             cuttingNormal: new Vec3Setting(sidebar, "Cuttingplane normal", true),
-            file: new SelectSetting(sidebar, "File", [
-                {value: "./data/hand", text: "Hand"},
-                {value: "./data/manix", text: "Manix"},
-                {value: "./data/wholebody", text: "Body"},
-                {value: "./data/sinusveins", text: "Sinus"}
-            ]),
         };
 
         this.loadedData = data;
