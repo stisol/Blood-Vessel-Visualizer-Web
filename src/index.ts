@@ -115,6 +115,14 @@ async function Init(): Promise<void> {
             false,
             minimapTransform);// clear to white
         gl.drawElements(gl.TRIANGLES, view.indiceCount(), gl.UNSIGNED_SHORT, 0.0);
+
+        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+        gl.bindTexture(gl.TEXTURE_2D, renderSlice.getRenderTarget().getTexture());
+        gl.uniformMatrix4fv(
+            viewInfo.uniformLocations.transform,
+            false,
+            mat4.create());// clear to white
+        gl.drawElements(gl.TRIANGLES, view.indiceCount(), gl.UNSIGNED_SHORT, 0.0);
         
         gl.bindTexture(gl.TEXTURE_2D, null);
         gl.enable(gl.DEPTH_TEST);

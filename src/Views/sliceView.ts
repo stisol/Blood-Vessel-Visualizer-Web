@@ -13,6 +13,7 @@ import * as $ from "jquery";
 export default class SliceView implements View {
     private gl: WebGL2RenderingContext;
     private renderTarget: RenderTarget;
+    private renderTarget2D: RenderTarget;
     private programInfo: ProgramInfo;
     private settings: Settings;
     //private transferFunction: TransferFunctionController;
@@ -50,7 +51,7 @@ export default class SliceView implements View {
         this.programInfo = new ProgramInfo(gl, shaderProgram);
 
         this.canvas = document.getElementById("theCanvas") as HTMLCanvasElement;
-
+        this.renderTarget2D = this.renderTarget = new RenderTarget(gl, 2048, 2048);
         
 
         const wheelHandler = this.onMouseScroll.bind(this);
@@ -134,7 +135,7 @@ export default class SliceView implements View {
         }
         this.textureUpdated = false;
         const gl = this.gl;
-        
+
         gl.enable(gl.DEPTH_TEST);
         gl.depthFunc(gl.LEQUAL);
         gl.viewport(0, 0, this.renderTarget.getWidth(), this.renderTarget.getHeight());
@@ -148,7 +149,14 @@ export default class SliceView implements View {
             this.slices.forEach(element => element.updateMesh(this.layoutCache, aspect));
         }
 
+        this.renderTarget2D.bindFramebuffer();
+        gl.clearColor(0.0, 0.0, 0.0, 0.0);
+        gl.clearDepth(1.0);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        gl.disable(gl.DEPTH_TEST);
         for (let i = 0; i < this.slices.length; i++) {
+            this.renderTarget2D.bindFramebuffer();
+
             const identity = mat4.identity(mat4.create());
             gl.uniformMatrix4fv(this.programInfo.uniformLocations.projectionMatrix, false, identity);
 
@@ -163,10 +171,11 @@ export default class SliceView implements View {
             if (this.layoutCache != Layout.View3D) {
                 slice.getMesh().bindShader(gl, this.programInfo.program);
                 gl.drawElements(gl.TRIANGLES, slice.getMesh().indiceCount(), gl.UNSIGNED_SHORT, 0);
-            }
-                
+            }            
+            
             // 3D planar representation
             if (!settings.showslices()) continue;
+            this.renderTarget.bindFramebuffer();
             const perspective = mat4.create();
             const fieldOfView = 45 * Math.PI / 180, zNear = 0.1, zFar = 40.0;
             if (settings.isOrtographicCamera()) {
@@ -285,7 +294,7 @@ export default class SliceView implements View {
     }
 
     getRenderTarget(): RenderTarget {
-        return this.renderTarget;
+        return this.renderTarget2D;
     }
 }
 
