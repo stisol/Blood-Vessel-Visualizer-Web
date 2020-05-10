@@ -176,26 +176,32 @@ export default class SliceView implements View {
             const lookat = mat4.copy(mat4.create(), camera.getTransform());
             mat4.translate(lookat, lookat, vec3.negate(vec3.create(), this.modelCenter));
 
-            // Center the slices before offsetting by the slider
-            const matrix = mat4.translate(mat4.create(), mat4.create(), [0.5, 1, 0.5]);
+            // "Center" the slices
+            const transVec: vec3 = [0.5, 0.5, 0.5];
+            const scaleVec: vec3 = mat4.getScaling(vec3.create(), loadedData.scale);
+            for (let i = 0; i < 3; i++)
+                transVec[i] /= scaleVec[i];            
+            const matrix = mat4.translate(mat4.create(), mat4.create(), transVec);
+
+            let zOff = 0;
             switch (i) {
                 case 0:
-                    mat4.translate(matrix, matrix, [0, 0, 2 * this.controlDepth - 1]);
+                    zOff = this.controlDepth;
                     break;
                 case 1:
-                    mat4.translate(matrix, matrix, [0, 2 * this.controlHeight - 1, 0]);
+                    zOff = this.controlHeight;
                     mat4.rotateX(matrix, matrix, Math.PI / 2)
                     break;
                 case 2:
-                    mat4.translate(matrix, matrix, [2 * this.controlWidth - 1, 0, 0]);
+                    zOff = this.controlWidth;
                     mat4.rotateY(matrix, matrix, -Math.PI / 2);
                     mat4.rotateZ(matrix, matrix, Math.PI / 2);
                     mat4.rotateX(matrix, matrix, Math.PI);
                     break;
             }
+            mat4.translate(matrix, matrix, [0, 0, 2 * zOff - 1]);
 
-            mat4.mul(matrix, loadedData.scale, matrix);
-
+            mat4.multiply(matrix, loadedData.scale, matrix);
             mat4.multiply(matrix, lookat, matrix);
             mat4.multiply(matrix, perspective, matrix);
             
