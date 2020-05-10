@@ -26,6 +26,7 @@ export default class SliceView implements View {
     private mesh3d: Mesh;
     private aspectRatioCache = 1;
     private layoutCache = Layout.Focus;
+    private forceLayout = false;
     public textureUpdated = false;
     
     public constructor(
@@ -140,7 +141,8 @@ export default class SliceView implements View {
         gl.useProgram(this.programInfo.program);
         
         // Layout recalculation
-        if (settings.layout() != this.layoutCache || aspect != this.aspectRatioCache) {
+        if (settings.layout() != this.layoutCache || aspect != this.aspectRatioCache || this.forceLayout) {
+            this.forceLayout = false;
             this.layoutCache = settings.layout();
             this.aspectRatioCache = aspect;
             this.slices.forEach(element => element.updateMesh(this.layoutCache, aspect));
@@ -278,6 +280,7 @@ export default class SliceView implements View {
         this.slices.push(new Slice(this.gl, [255, 0, 0], 0, volumeData.width, volumeData.height, 1));
         this.slices.push(new Slice(this.gl, [0, 255, 0], 1, volumeData.width, volumeData.depth, 1));
         this.slices.push(new Slice(this.gl, [0, 0, 255], 2, volumeData.height, volumeData.depth, 1));
+        this.forceLayout = true;
         this.cacheSlices();
     }
 
