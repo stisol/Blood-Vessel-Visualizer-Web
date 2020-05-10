@@ -63,6 +63,9 @@ export default class VolumeRenderer {
 
         const boxMin = vec3.transformMat4(vec3.create(), vec3.fromValues(-1.0,-1.0,-1.0), scale);
         const boxMax = vec3.transformMat4(vec3.create(), vec3.fromValues(1.0, 1.0, 1.0), scale);
+        
+        const test = vec3.fromValues(settings.getLoadedData().width, settings.getLoadedData().height, settings.getLoadedData().depth);
+        gl.uniform3fv(this.programInfo.uniformLocations.volumeDim, test);
 
         gl.uniform3fv(this.programInfo.uniformLocations.boxMin, boxMin);
         gl.uniform3fv(this.programInfo.uniformLocations.boxMax, boxMax);
@@ -127,6 +130,7 @@ class UniformLocations {
     clipPlanePos: WebGLUniformLocation;
     clipPlaneNormal: WebGLUniformLocation;
     showCuttingplane: WebGLUniformLocation;
+    volumeDim: WebGLUniformLocation;
 
     constructor(gl: WebGL2RenderingContext, shaderProgram: WebGLShader) {        
         this.projectionMatrix = 
@@ -164,5 +168,7 @@ class UniformLocations {
         
         this.showCuttingplane = 
             gl.getUniformLocation(shaderProgram, "showCuttingplane") as WebGLUniformLocation;
+        this.volumeDim = 
+            gl.getUniformLocation(shaderProgram, "volume_dim") as WebGLUniformLocation;
     }
 }

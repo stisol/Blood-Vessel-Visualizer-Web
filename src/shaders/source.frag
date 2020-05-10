@@ -36,7 +36,7 @@ uniform bool lowQuality;
 // value between (0.0, 1.0] that defines the step resoultion based on size
 float resolution = 0.1;
 // Volume dimension
-const vec3 volume_dim = vec3(244, 124, 257);
+uniform vec3 volume_dim;
 
 const vec3 light_color = vec3(1.0, 0.0, 0.0);
 

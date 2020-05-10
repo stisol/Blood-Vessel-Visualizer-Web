@@ -53,7 +53,6 @@ function loadShader(
     if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
         const error = "An error occurred compiling the shaders";
         alert(error + ": " + gl.getShaderInfoLog(shader));
-        console.log(error + ": " + gl.getShaderInfoLog(shader))
         gl.deleteShader(shader);
         return null;
     }
@@ -75,24 +74,26 @@ export async function bindTexture(url: string, ini: string, gl: WebGL2RenderingC
     const width = floatArray[0];
     const height = floatArray[1];
     const depth = floatArray[2];
-    console.log(width, height, depth);
 
     const largestAxis = Math.max(width, Math.max(height, depth));
-    mat4.scale(scale, scale, vec3.fromValues(width/largestAxis, height/largestAxis, depth/largestAxis));
 
+    const volumeScale = vec3.fromValues(width/largestAxis, height/largestAxis, depth/largestAxis);
+    
     const datScaleX = parseFloat(sizes.DatFile["oldDat Spacing X"]);
     const datScaleY = parseFloat(sizes.DatFile["oldDat Spacing Y"]);
     const datScaleZ = parseFloat(sizes.DatFile["oldDat Spacing Z"]);
-    mat4.scale(scale, scale, vec3.fromValues(datScaleX, datScaleY, datScaleZ));
+    const iniScale = vec3.fromValues(datScaleX, datScaleY, datScaleZ);
+
+    const vscale = vec3.mul(vec3.create(), volumeScale, iniScale);
+    vec3.normalize(vscale, vscale);
+
+    mat4.scale(scale, scale, vscale);
 
     // Normalize
-    console.log("Calculating max");
     let max = 0;
     for (let i = 0; i < floatArray.length; ++i) {
         max = Math.max(max, floatArray[i]);
     }
-    console.log("Max is ", max);
-    console.log(scale);
 
     const texture = gl.createTexture();
     gl.activeTexture(gl.TEXTURE0);
@@ -107,7 +108,6 @@ export async function bindTexture(url: string, ini: string, gl: WebGL2RenderingC
     gl.texParameteri(gl.TEXTURE_3D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
     const volumeData = new Float32Array(floatArray.slice(3));
-    console.log(volumeData.length * 3);
     let normalFactor = 1.0
     if(volumeData.length * 3 * 32 / 8 / 1024 / 1024 / 1024 > 2) {
         normalFactor = 0.5;
@@ -118,7 +118,6 @@ export async function bindTexture(url: string, ini: string, gl: WebGL2RenderingC
     const nDepth = Math.round(depth * normalFactor);
 
     const normalData = new Float32Array(nWidth*nHeight*nDepth*3);
-    console.log("Normal fits", normalData);
     for (let i = 0; i < volumeData.length; ++i) {
         volumeData[i] /= max;
     }
@@ -139,7 +138,6 @@ export async function bindTexture(url: string, ini: string, gl: WebGL2RenderingC
     const index = (x: number, y: number, z: number): number =>
         Math.max((x + y * nWidth / normalFactor + z * nWidth * nHeight / normalFactor / normalFactor), 0.0) / normalFactor;
 
-        console.log("Computing normals", normalData.length, nWidth, nHeight, nDepth);
     for (let i = 0; i < normalData.length; i += 3) {
         const x = Math.floor((i/3)) % nWidth;
         const y = Math.floor((i/3 / nWidth)) % nHeight;
@@ -154,8 +152,6 @@ export async function bindTexture(url: string, ini: string, gl: WebGL2RenderingC
             normalData[i + 2] /= factor;
     }
     const t1 = performance.now()
-    console.log("Call to doSomething took " + (t1 - t0) + " milliseconds.")
-        console.log("finished normals", normalData);
         const texture2 = gl.createTexture();
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_3D, texture2);
