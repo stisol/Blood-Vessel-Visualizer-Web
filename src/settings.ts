@@ -419,6 +419,12 @@ export default class Settings {
             showCuttingPlane: new CheckboxSetting(sidebar, "Show cuttingplane", false, "cuttingplane", "checkbox"),
             cuttingPosition: new Vec3Setting(sidebar, "Cuttingplane position", false),
             cuttingNormal: new Vec3Setting(sidebar, "Cuttingplane normal", true),
+            file: new SelectSetting(sidebar, "File", [
+                {value: "./data/hand", text: "Hand"},
+                {value: "./data/manix", text: "Manix"},
+                {value: "./data/wholebody", text: "Body"},
+                {value: "./data/sinusveins", text: "Sinus"}
+            ]),
         };
 
         this.loadedData = data;
@@ -470,6 +476,10 @@ export default class Settings {
 
     public cuttingPlaneNormal(): vec3 {
         return this.settings["cuttingNormal"].value();
+    }
+    
+    public getFile(): string {
+        return this.settings["file"].value();
     }
 
     public layout(): Layout {
