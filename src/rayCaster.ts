@@ -82,8 +82,8 @@ export default class RayCasterController {
     private onclick(ev: JQuery.DoubleClickEvent): void {
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const ev2 = ev.originalEvent as MouseEvent;
-        const x = ev2.clientX / this.modelCanvas.clientWidth;
-        const y = ev2.clientY / this.modelCanvas.clientHeight;
+        const x = ev2.clientX / this.modelCanvas.clientWidth * 2.0 - 1.0;
+        const y = ev2.clientY / this.modelCanvas.clientHeight * 2.0 - 1.0;
         
         const zNear = 0.1, zFar = 40.0;
         let projectionMatrix;
@@ -96,7 +96,7 @@ export default class RayCasterController {
         
         const modelViewMatrix = mat4.copy(mat4.create(), this.camera.getTransform());
         
-        const eye4 = vec4.transformMat4(vec4.create(), vec4.fromValues(0.0, 0.0, 0.0, 1.0), mat4.invert(mat4.create(), modelViewMatrix));
+        const eye4 = vec4.transformMat4(vec4.create(), vec4.fromValues(0.0, 0.0, 0.0, 1.0), modelViewMatrix);
         const eye = vec3.fromValues(eye4[0], eye4[1], eye4[2]);
         const scale = this.volumeData.scale;
         const boxMin = vec3.transformMat4(vec3.create(), vec3.fromValues(-1.0,-1.0,-1.0), scale);
@@ -106,10 +106,19 @@ export default class RayCasterController {
         mat4.multiply(matrix, projectionMatrix, modelViewMatrix);
         //const glPosition = uProjectionMatrix * uScaleMatrix * vec4(aVertexPosition, 1.0);
             
-        const position: vec3 = [x, y, 0];
+        const rayClip: vec4 = [0.0, 0.0, -1.0, 0.0];
+        const rayWorld = vec4.transformMat4(vec4.create(), rayClip, mat4.invert(mat4.create(), modelViewMatrix));
+
+        vec4.normalize(rayWorld, rayWorld);
+
+        const position = vec3.fromValues(rayWorld[0], rayWorld[1], rayWorld[2]);
+        vec3.normalize(position, position);
+
+        console.log("POSITO", position, rayClip);
+
         const volumeDim: vec3 = [244, 124, 257];
         
-        const data = rayCast(this.volumeData, position, eye, volumeDim, scale, boxMin, boxMax);
+        const data = rayCast(this.volumeData, vec3.fromValues(0.0, 0.0, 1.0), eye, volumeDim, scale, boxMin, boxMax);
         
         this.histogramData = [];
         const buckets = this.buckets;

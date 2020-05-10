@@ -1,7 +1,7 @@
 import { vec3, vec2, mat4 } from "gl-matrix";
 import { LoadedTextureData } from "./shader";
 
-const resolution = 0.05;
+const resolution = 1.0;
 
 function intersectBox(orig: vec3, dir: vec3, boxMin: vec3, boxMax: vec3): vec2 {
 	const invDir: vec3 = oneOver(dir);
@@ -36,13 +36,16 @@ function raymarch(
 ): number[] {
     const res: number[] = [];
     const inverseScale: mat4 = mat4.invert(mat4.create(), uScaleMatrix);
-    const texSpaceRay: vec3 = vec3.transformMat4(ray, ray, inverseScale);
-    const texSpaceRayDir: vec3 = vec3.transformMat4(rayDir, rayDir, inverseScale);
+    const texSpaceRay: vec3 = vec3.transformMat4(vec3.create(), ray, inverseScale);
+    const texSpaceRayDir: vec3 = vec3.transformMat4(vec3.create(), rayDir, inverseScale);
+    const step = vec3.scale(vec3.create(), rayDir, stepSize);
+    const texSpaceStep = vec3.scale(vec3.create(), texSpaceRayDir, stepSize);
     for (let t = start; t < end; t += stepSize) {
         // TODO: Make the data uniform and not dependent on max-size
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
-        const ray = vec3.scaleAndAdd(vec3.create(), [0.5, 0.5, 0.5], texSpaceRay, 0.2);
-        const val = lookup(volumeData, ray);
+        const ray2 = vec3.scaleAndAdd(vec3.create(), [0.5, 0.5, 0.5], texSpaceRay, 0.5);
+        const val = lookup(volumeData, ray2);
+        console.log(ray2);
         if (val != undefined)
             res.push(val);
 
@@ -55,9 +58,7 @@ function raymarch(
         //     continue;
         // }            
 
-        const step = vec3.scale(vec3.create(), rayDir, stepSize);
         vec3.add(ray, ray, step);
-        const texSpaceStep = vec3.scale(vec3.create(), texSpaceRayDir, stepSize);
         vec3.add(texSpaceRay, texSpaceRay, texSpaceStep);
     }
     return res;
@@ -80,11 +81,13 @@ export default function main(
     boxMin: vec3,
     boxMax: vec3
 ): number[] {
-    const vrayDir = vec3.transformMat4(vec3.create(), position, uScaleMatrix)
-    vec3.subtract(vrayDir, vrayDir, transformedEye);
+    //const vrayDir = vec3.transformMat4(vec3.create(), position, uScaleMatrix)
+    //vec3.subtract(vrayDir, vrayDir, transformedEye);
 
-    const rayDir: vec3 = vec3.normalize(vrayDir, vrayDir);
+    
+    const rayDir: vec3 = vec3.normalize(position, position);
     const hit: vec2 = intersectBox(transformedEye, rayDir, boxMin, boxMax);
+    console.log(rayDir, hit, transformedEye);
 
 	if (hit[0] > hit[1]) {
 		return [];
@@ -97,6 +100,8 @@ export default function main(
 	const dtVec: vec3 = oneOver(vec3.multiply(vec3.create(), volumeDim, abs(rayDir)));
 	const dt: number = Math.min(dtVec[0], Math.min(dtVec[1], dtVec[2])) * resolution;
     
-    const ray: vec3 = vec3.scale(vec3.create(), vec3.multiply(vec3.create(), transformedEye, rayDir), hit[0]);
-    return raymarch(volumeData, ray, rayDir, hit[0], hit[1], dt, uScaleMatrix);
+    const rayStart = vec3.add(vec3.create(), transformedEye, vec3.scale(vec3.create(), rayDir, hit[0]));
+    //console.log(rayStart, rayDir, hit[0], hit[1], dt);
+    console.log("RAY START", rayStart, rayDir, transformedEye);
+    return raymarch(volumeData, rayStart, rayDir, hit[0], hit[1], dt, uScaleMatrix);
 }
