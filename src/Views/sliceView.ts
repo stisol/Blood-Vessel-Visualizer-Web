@@ -8,16 +8,15 @@ import Mesh from '../mesh';
 import vert from "../shaders/slice.vert";
 import frag from "../shaders/slice.frag";
 import { initShaderProgram, LoadedTextureData } from '../shader';
-import TransferFunctionController from '../transferFunction';
 import * as $ from "jquery";
 
 export default class SliceView implements View {
     private gl: WebGL2RenderingContext;
     private renderTarget: RenderTarget;
     private programInfo: ProgramInfo;
+    private settings: Settings;
     //private transferFunction: TransferFunctionController;
     // private transferFunctionTexture: WebGLTexture;
-    private volumeData: LoadedTextureData;
     private slices: Slice[] = [];
     private canvas: HTMLCanvasElement;
     private controlWidth = 0.5;
@@ -31,12 +30,12 @@ export default class SliceView implements View {
     
     public constructor(
         gl: WebGL2RenderingContext,
-        transferFunction: TransferFunctionController,
         renderTarget: RenderTarget,
-        volumeData: LoadedTextureData) {
+        settings: Settings) {
         this.gl = gl;
+        this.settings = settings;
         this.renderTarget = renderTarget;
-        this.volumeData = volumeData;
+        const volumeData = settings.getLoadedData();
 
         // this.transferFunction = transferFunction;
         // this.transferFunctionTexture = gl.createTexture() as WebGLTexture;
@@ -65,19 +64,20 @@ export default class SliceView implements View {
     }
 
     private onMouseScroll(ev: WheelEvent): boolean {
-        return this.doOnSlice(ev.clientX, ev.clientY, (i: number) => {            
+        return this.doOnSlice(ev.clientX, ev.clientY, (i: number) => {
+            const volumeData = this.settings.getLoadedData();
             const sign = ev.deltaY > 0 ? -1 : 1;
             switch (i) {
                 case 0:
-                    this.controlDepth += sign / this.volumeData.depth;
+                    this.controlDepth += sign / volumeData.depth;
                     this.controlDepth = Math.min(1, Math.max(0, this.controlDepth));
                     break;
                 case 1:
-                    this.controlHeight += sign / this.volumeData.height;
+                    this.controlHeight += sign / volumeData.height;
                     this.controlHeight = Math.min(1, Math.max(0, this.controlHeight));
                     break;
                 case 2:
-                    this.controlWidth += sign / this.volumeData.height;
+                    this.controlWidth += sign / volumeData.height;
                     this.controlWidth = Math.min(1, Math.max(0, this.controlWidth));
                     break;
             }
@@ -213,29 +213,30 @@ export default class SliceView implements View {
 
     private cacheSlices(): void {
         const gl = this.gl;
+        const volumeData = this.settings.getLoadedData();
         { // Depth
-            const z = Math.floor(this.volumeData.depth * this.controlDepth);
-            const sliceSize = this.volumeData.width * this.volumeData.height;
-            this.slices[0].setTexCache(this.volumeData.data.slice(z * sliceSize, (z + 1) * sliceSize));
+            const z = Math.floor(volumeData.depth * this.controlDepth);
+            const sliceSize = volumeData.width * volumeData.height;
+            this.slices[0].setTexCache(volumeData.data.slice(z * sliceSize, (z + 1) * sliceSize));
             gl.activeTexture(gl.TEXTURE3);
             gl.bindTexture(gl.TEXTURE_2D, this.slices[0].getTexture());
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.R16F, this.volumeData.width,
-                this.volumeData.height, 0, gl.RED, gl.FLOAT, this.slices[0].getTexCache());
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.R16F, volumeData.width,
+                volumeData.height, 0, gl.RED, gl.FLOAT, this.slices[0].getTexCache());
         }
         { // Height
-            const offset = Math.floor(this.volumeData.height * this.controlHeight);
-            const hOff = offset * this.volumeData.width;
-            const sliceSize = this.volumeData.depth * this.volumeData.width;
+            const offset = Math.floor(volumeData.height * this.controlHeight);
+            const hOff = offset * volumeData.width;
+            const sliceSize = volumeData.depth * volumeData.width;
             const texCache = new Float32Array(sliceSize);
             let i = 0;
-            for (let d = 0; d < this.volumeData.depth; d++) {
-                const dOff = d * this.volumeData.height * this.volumeData.width;
-                for (let w = 0; w < this.volumeData.width; w++) {
+            for (let d = 0; d < volumeData.depth; d++) {
+                const dOff = d * volumeData.height * volumeData.width;
+                for (let w = 0; w < volumeData.width; w++) {
                     const wOff = w;
-                    texCache[i++] = this.volumeData.data[hOff + dOff + wOff];
+                    texCache[i++] = volumeData.data[hOff + dOff + wOff];
                 }
             }
             this.slices[1].setTexCache(texCache);
@@ -244,19 +245,19 @@ export default class SliceView implements View {
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.R16F, this.volumeData.width,
-                this.volumeData.depth, 0, gl.RED, gl.FLOAT, this.slices[1].getTexCache());
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.R16F, volumeData.width,
+                volumeData.depth, 0, gl.RED, gl.FLOAT, this.slices[1].getTexCache());
         }
         { // Width
-            const wOff = Math.floor(this.volumeData.width * this.controlWidth);
-            const sliceSize = this.volumeData.depth * this.volumeData.width;
+            const wOff = Math.floor(volumeData.width * this.controlWidth);
+            const sliceSize = volumeData.depth * volumeData.width;
             const texCache = new Float32Array(sliceSize);
             let i = 0;
-            for (let d = 0; d < this.volumeData.depth; d++) {
-                const dOff = d * this.volumeData.height * this.volumeData.width;
-                for (let h = 0; h < this.volumeData.height; h++) {
-                    const hOff = h * this.volumeData.width;
-                    texCache[i++] = this.volumeData.data[dOff + hOff + wOff];
+            for (let d = 0; d < volumeData.depth; d++) {
+                const dOff = d * volumeData.height * volumeData.width;
+                for (let h = 0; h < volumeData.height; h++) {
+                    const hOff = h * volumeData.width;
+                    texCache[i++] = volumeData.data[dOff + hOff + wOff];
                 }
             }
             this.slices[2].setTexCache(texCache);
@@ -265,9 +266,19 @@ export default class SliceView implements View {
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.R16F, this.volumeData.height,
-                this.volumeData.depth, 0, gl.RED, gl.FLOAT, this.slices[2].getTexCache());
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.R16F, volumeData.height,
+                volumeData.depth, 0, gl.RED, gl.FLOAT, this.slices[2].getTexCache());
         }
+    }
+
+    public recalculate(): void {
+        const volumeData = this.settings.getLoadedData();
+
+        this.slices = [];
+        this.slices.push(new Slice(this.gl, [255, 0, 0], 0, volumeData.width, volumeData.height, 1));
+        this.slices.push(new Slice(this.gl, [0, 255, 0], 1, volumeData.width, volumeData.depth, 1));
+        this.slices.push(new Slice(this.gl, [0, 0, 255], 2, volumeData.height, volumeData.depth, 1));
+        this.cacheSlices();
     }
 
     getRenderTarget(): RenderTarget {

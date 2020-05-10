@@ -25,14 +25,13 @@ async function Init(): Promise<void> {
         return;
     }
 
-    const loadedData = await bindTexture("./data/hand.dat", "./data/hand.ini", gl);
-    const volumeData = loadedData.data;
-
+    let loadedData = await bindTexture("./data/hand.dat", "./data/hand.ini", gl);
+    
     const settings = new Settings(loadedData);
     const sidebar = document.getElementById("sidebar") as HTMLDivElement;
-    const transferFunction = new TransferFunctionController(volumeData, sidebar, settings);
-    const renderView = new MainView(gl, transferFunction,);
-    const renderSlice = new SliceView(gl, transferFunction, renderView.getRenderTarget(), loadedData);
+    const transferFunction = new TransferFunctionController(sidebar, settings);
+    const renderView = new MainView(gl, transferFunction);
+    const renderSlice = new SliceView(gl, renderView.getRenderTarget(), settings);
     const camera = new Camera([0.5, 0.5, 0.5], document.getElementById("theCanvas") as HTMLCanvasElement);
     const view = createSquareMesh(-1.0, 1.0);
     const rayCasterController = new RayCasterController(loadedData, sidebar, settings, camera);
@@ -47,6 +46,11 @@ async function Init(): Promise<void> {
         },
     };
 
+    let forceUpdate = false;
+    let file = settings.getFile();
+    let newFile = file;
+
+    // eslint-disable-next-line no-constant-condition
     const renderLoop = (): void => {
         // render to the canvas
         // Setup required OpenGL state for drawing the back faces and
@@ -61,7 +65,8 @@ async function Init(): Promise<void> {
         const aspect = canvas.clientWidth / canvas.clientHeight;
         rayCasterController.aspect = aspect;
 
-        if (newFrame || settingsUpdated || sliceUpdated) {
+        if (newFrame || settingsUpdated || sliceUpdated || forceUpdate) {
+            forceUpdate = false;
             renderView.getRenderTarget().bindFramebuffer();
             gl.clearColor(0.0, 0.0, 0.0, 1.0);
             gl.clearDepth(1.0);
@@ -117,6 +122,21 @@ async function Init(): Promise<void> {
         requestAnimationFrame(renderLoop);
     };
     requestAnimationFrame(renderLoop);
+
+    const reloadFileWatcher = async (): Promise<void> => {
+        newFile = settings.getFile();
+        if (file != newFile) {
+            file = newFile;
+            loadedData = await bindTexture(file + ".dat", file + ".ini", gl);
+            settings.setLoadedData(loadedData);
+            
+            renderSlice.recalculate();
+            transferFunction.recalculate();
+            forceUpdate = true;
+        }
+        await new Promise(resolve => setTimeout(() => resolve(reloadFileWatcher()), 1000));
+    }
+    reloadFileWatcher();
 }
 
 Init();

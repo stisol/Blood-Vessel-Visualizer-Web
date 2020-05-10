@@ -10,6 +10,7 @@ export default class TransferFunctionController {
     private dragging = false;
     private draggingId = 0;
     private lastClick = 0;
+    private buckets: number;
     public transferFunctionUpdated = true;
 
     private readonly handleSize = 6;
@@ -22,14 +23,13 @@ export default class TransferFunctionController {
      * @param volumeData The normalized volume data.
      */
     constructor(
-        volumeData: Float32Array,
         parentElement: HTMLElement,
         settings: Settings,
         buckets = 50) {
-
+        this.buckets = buckets;
         this.settings = settings;
         this.histogramData = new Array(buckets).fill(0);
-        volumeData.forEach(v => {
+        settings.getLoadedData().data.forEach(v => {
             const i = Math.floor(v * (buckets - 1));
             this.histogramData[i] += 1;
         });
@@ -67,6 +67,14 @@ export default class TransferFunctionController {
 
         this.ctx = this.canvas.getContext("2d") as CanvasRenderingContext2D;
         this.draw();
+    }
+
+    public recalculate(): void {
+        this.histogramData = new Array(this.buckets).fill(0);
+        this.settings.getLoadedData().data.forEach(v => {
+            const i = Math.floor(v * (this.buckets - 1));
+            this.histogramData[i] += 1;
+        });
     }
 
     /**

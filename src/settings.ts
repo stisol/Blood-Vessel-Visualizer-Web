@@ -365,6 +365,12 @@ export default class Settings {
                 {value: "1", text: "3D View only"},
                 {value: "2", text: "Quad view"}
             ]),
+            file: new SelectSetting(sidebar, "File", [
+                {value: "./data/hand", text: "Hand"},
+                {value: "./data/manix", text: "Manix"},
+                {value: "./data/wholebody", text: "Body"},
+                {value: "./data/sinusveins", text: "Sinus"}
+            ]),
             light: new LightSetting(sidebar, "Light position")
         };
 
@@ -405,6 +411,10 @@ export default class Settings {
 
     public lightDistance(): number {
         return this.settings["lightDistance"].value();
+    }
+
+    public getFile(): string {
+        return this.settings["file"].value();
     }
 
     public layout(): Layout {
