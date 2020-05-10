@@ -25,7 +25,7 @@ async function Init(): Promise<void> {
         return;
     }
 
-    let loadedData = await bindTexture("./data/hand.dat", "./data/hand.ini", gl);
+    let loadedData = await bindTexture("http://51.15.231.127:5000/models/hand.dat", "http://51.15.231.127:5000/models/hand.ini", gl);
     
     const settings = new Settings(loadedData);
     const sidebar = document.getElementById("sidebar") as HTMLDivElement;
