@@ -11,6 +11,7 @@ export default function makeRequest(
             if (this.status >= 200 && this.status < 300) {
                 resolve(xhr.response);
             } else {
+                alert("Could not load model - please ensure data is present in the 'dist' folder.");
                 reject({
                     status: this.status,
                     statusText: xhr.statusText
@@ -18,6 +19,7 @@ export default function makeRequest(
             }
         };
         xhr.onerror = function (): void {
+            alert("Could not load model - please ensure data is present in the 'dist' folder.");
             reject({
                 status: this.status,
                 statusText: xhr.statusText
