@@ -156,6 +156,7 @@ export default class SliceView implements View {
         gl.disable(gl.DEPTH_TEST);
         for (let i = 0; i < this.slices.length; i++) {
             this.renderTarget2D.bindFramebuffer();
+            gl.disable(gl.DEPTH_TEST);
 
             const identity = mat4.identity(mat4.create());
             gl.uniformMatrix4fv(this.programInfo.uniformLocations.projectionMatrix, false, identity);
@@ -176,6 +177,7 @@ export default class SliceView implements View {
             // 3D planar representation
             if (!settings.showslices()) continue;
             this.renderTarget.bindFramebuffer();
+            gl.enable(gl.DEPTH_TEST);
             const perspective = mat4.create();
             const fieldOfView = 45 * Math.PI / 180, zNear = 0.1, zFar = 40.0;
             if (settings.isOrtographicCamera()) {
