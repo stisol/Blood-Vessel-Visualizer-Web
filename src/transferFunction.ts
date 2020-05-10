@@ -75,6 +75,7 @@ export default class TransferFunctionController {
             const i = Math.floor(v * (this.buckets - 1));
             this.histogramData[i] += 1;
         });
+        this.draw();
     }
 
     /**
