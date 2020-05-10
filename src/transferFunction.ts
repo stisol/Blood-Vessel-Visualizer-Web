@@ -79,7 +79,7 @@ export default class TransferFunctionController {
         const itemWidth = totalWidth / itemCount;
         const maxValue = Math.max(...this.histogramData);
         const maxHeight = this.canvas.height - 2 * margin;
-
+        
         // Draw histogram.
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.ctx.fillStyle = "grey";
@@ -106,6 +106,15 @@ export default class TransferFunctionController {
             const v = this.handleSize;
             this.ctx.fillRect(x - (v / 2), y - (v / 2), v, v);
         });
+
+        // Draw text
+        const maxV = Math.round(maxValue).toString();
+        this.ctx.fillStyle = "white";
+        this.ctx.font = '10px sans';
+        this.ctx.fillText(maxV, 0, 20);
+        this.ctx.fillText("0", 0, this.canvas.height - 20);
+        this.ctx.fillText("0", 20, this.canvas.height);
+        this.ctx.fillText("1", this.canvas.width - 10, this.canvas.height);
     }
 
     /**
